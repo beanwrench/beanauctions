@@ -1,0 +1,1006 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BeanAuctions</title>
+<style>
+  :root {
+    --navy:#0c2350; --blue:#1d4ea8; --blue-d:#163d86; --blue-l:#e8eefa; --yellow:#ffc120; --yellow-d:#e8aa00;
+    --red:#d32f2f; --red-l:#fdecec; --green:#1e7b3a; --green-l:#e6f4ea; --amber:#8a5a00; --amber-l:#fff4d6;
+    --bg:#f2f4f7; --card:#fff; --line:#dfe3ea; --line2:#eceff4; --text:#141a26; --muted:#5b6475; --faint:#8a92a3;
+  }
+  * { box-sizing:border-box; }
+  html, body { height:100%; }
+  body { margin:0; font:14px/1.45 "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif; color:var(--text); background:var(--bg); -webkit-font-smoothing:antialiased; }
+  body.ingame { background:rgba(6,9,14,.62); overflow:hidden; user-select:none; }
+  .num { font-variant-numeric:tabular-nums; }
+  a { color:var(--blue); cursor:pointer; text-decoration:none; } a:hover { text-decoration:underline; }
+  button { font:inherit; cursor:pointer; border:0; border-radius:4px; padding:8px 14px; font-weight:600; line-height:1.2; }
+  button:disabled { opacity:.45; cursor:default; }
+  .btn-y { background:var(--yellow); color:#1b1f29; } .btn-y:hover:not(:disabled) { background:var(--yellow-d); }
+  .btn-b { background:var(--blue); color:#fff; } .btn-b:hover:not(:disabled) { background:var(--blue-d); }
+  .btn-o { background:#fff; color:var(--blue); box-shadow:inset 0 0 0 1px #b9c6e0; } .btn-o:hover:not(:disabled) { background:var(--blue-l); }
+  .btn-g { background:transparent; color:var(--muted); box-shadow:inset 0 0 0 1px var(--line); } .btn-g:hover { background:#fff; color:var(--text); }
+  .btn-lg { padding:12px 18px; font-size:15px; }
+  input { font:inherit; padding:8px 10px; border:1px solid #c9d0dc; border-radius:4px; background:#fff; color:var(--text); user-select:text; outline:none; }
+  input:focus { border-color:var(--blue); box-shadow:0 0 0 3px rgba(29,78,168,.15); }
+  svg.i { width:16px; height:16px; vertical-align:-3px; fill:none; stroke:currentColor; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+  /* ---------- tablet (in game only) ---------- */
+  #device { height:100%; display:flex; flex-direction:column; }
+  body.ingame #device { position:absolute; inset:0; margin:auto; width:min(1760px, 95vw); height:min(1080px, 93vh); background:#17191d; border-radius:38px; padding:20px;
+    box-shadow:0 0 0 2px #2b2e34, 0 30px 80px rgba(0,0,0,.6), inset 0 0 0 1px #000; animation:rise .28s ease-out; }
+  body.ingame #device::before { content:""; position:absolute; top:8px; left:50%; width:7px; height:7px; margin-left:-3px; border-radius:50%; background:#0b0c0e; box-shadow:inset 0 0 0 1px #2a2d33; }
+  @keyframes rise { from { transform:translateY(24px); opacity:0; } }
+  #screen { position:relative; flex:1; min-height:0; display:flex; flex-direction:column; background:var(--bg); overflow:hidden; }
+  body.ingame #screen { border-radius:20px; }
+  #statusbar { display:none; height:26px; flex:none; padding:0 18px; align-items:center; justify-content:space-between; font-size:12px; font-weight:600; color:#fff; background:#0a1a3d; }
+  body.ingame #statusbar { display:flex; }
+  body.ingame.on-launcher #statusbar { background:transparent; position:absolute; top:0; left:0; right:0; z-index:3; }
+  #statusbar .r { display:flex; gap:12px; align-items:center; }
+  #statusbar svg.i { width:14px; height:14px; }
+  .batt { display:inline-flex; align-items:center; gap:4px; } .batt i { width:22px; height:11px; border:1.5px solid #fff; border-radius:3px; position:relative; display:inline-block; }
+  .batt i::before { content:""; position:absolute; left:1px; top:1px; bottom:1px; width:var(--b); background:#fff; border-radius:1px; } .batt i::after { content:""; position:absolute; right:-4px; top:3px; width:2px; height:4px; background:#fff; border-radius:0 1px 1px 0; }
+  #power { background:none; color:#fff; padding:0 2px; opacity:.85; } #power:hover { opacity:1; }
+  #homebar { display:none; position:absolute; bottom:6px; left:50%; width:150px; margin-left:-75px; height:5px; border-radius:3px; background:rgba(20,26,38,.35); cursor:pointer; z-index:5; }
+  #homebar::after { content:""; position:absolute; inset:-10px -20px; }
+  body.ingame #homebar { display:block; } body.ingame.on-launcher #homebar { background:rgba(255,255,255,.55); }
+
+  /* ---------- home screen ---------- */
+  #launcher { display:none; flex:1; position:relative; color:#fff; overflow:hidden; background:#0b1630; }
+  body.on-launcher #launcher { display:block; } body.on-launcher #site, body.on-diag #site { display:none; }
+  .wall { position:absolute; inset:-30px; background-size:cover; background-position:center; filter:blur(18px) brightness(.5) saturate(1.15); transform:scale(1.05); }
+  .wall-tint { position:absolute; inset:0; background:linear-gradient(180deg, rgba(8,18,44,.25), rgba(8,18,44,.7)); }
+  .lk { position:relative; height:100%; padding:56px 64px 150px; display:grid; grid-template-columns:minmax(0,1fr) 380px; gap:40px; }
+  .lk-clock { font-size:88px; font-weight:300; letter-spacing:-2px; line-height:1; } .lk-date { font-size:18px; opacity:.85; margin-top:6px; }
+  .hero-w { margin-top:34px; width:min(620px, 100%); background:rgba(255,255,255,.1); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.14); border-radius:22px; overflow:hidden; cursor:pointer; transition:transform .15s, background .15s; }
+  .hero-w:hover { background:rgba(255,255,255,.14); transform:translateY(-2px); }
+  .hero-w .ph { aspect-ratio:16/8; background:rgba(255,255,255,.06); position:relative; } .hero-w .ph img { width:100%; height:100%; object-fit:cover; display:block; }
+  .hero-w .ph .chip-live, .hero-w .ph .when { position:absolute; left:14px; top:14px; }
+  .hero-w .ph .when { background:rgba(10,16,30,.75); padding:4px 10px; border-radius:6px; font-size:12.5px; font-weight:600; }
+  .hero-w .tx { padding:14px 18px 16px; display:flex; align-items:flex-end; gap:16px; }
+  .hero-w .tx .n { flex:1; min-width:0; } .hero-w .tx .n b { font-size:17px; display:block; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; } .hero-w .tx .n span { font-size:13px; opacity:.75; }
+  .hero-w .tx .p { text-align:right; } .hero-w .tx .p b { font-size:28px; display:block; letter-spacing:-.5px; line-height:1.1; } .hero-w .tx .p span { font-size:12px; opacity:.8; }
+  .hero-w .goingbar { display:flex; gap:4px; padding:0 18px 14px; } .hero-w .goingbar i { flex:1; height:4px; border-radius:2px; background:rgba(255,255,255,.18); transition:background .2s; } .hero-w .goingbar i.on { background:#ff5a5a; }
+  .widgets { display:flex; flex-direction:column; gap:14px; }
+  .wdg { background:rgba(255,255,255,.1); backdrop-filter:blur(16px); border:1px solid rgba(255,255,255,.14); border-radius:20px; padding:16px 18px; cursor:pointer; transition:background .15s; }
+  .wdg:hover { background:rgba(255,255,255,.15); }
+  .wdg h5 { margin:0 0 8px; font-size:11px; text-transform:uppercase; letter-spacing:.08em; opacity:.75; font-weight:600; }
+  .wdg .big { font-size:30px; font-weight:600; letter-spacing:-.5px; }
+  .wdg .row3 { display:grid; grid-template-columns:repeat(3,1fr); gap:8px; text-align:center; } .wdg .row3 b { display:block; font-size:24px; } .wdg .row3 span { font-size:11px; opacity:.75; }
+  .wdg .ticker div { display:flex; justify-content:space-between; gap:10px; font-size:12.5px; padding:4px 0; border-bottom:1px solid rgba(255,255,255,.08); } .wdg .ticker div:last-child { border:0; }
+  .wdg .ticker span:first-child { overflow:hidden; white-space:nowrap; text-overflow:ellipsis; opacity:.9; }
+  .wdg .diagline { display:flex; align-items:center; gap:10px; font-size:13px; } .wdg .diagline i { width:9px; height:9px; border-radius:50%; background:#6b7787; flex:none; } .wdg .diagline i.g { background:#4ade80; box-shadow:0 0 8px #4ade80; }
+  .dock { position:absolute; left:50%; bottom:26px; transform:translateX(-50%); display:flex; gap:22px; padding:14px 22px 10px; border-radius:28px; background:rgba(255,255,255,.14); backdrop-filter:blur(20px); border:1px solid rgba(255,255,255,.18); box-shadow:0 10px 30px rgba(0,0,0,.3); }
+  .app { text-align:center; cursor:pointer; font-size:11.5px; font-weight:500; position:relative; width:76px; }
+  .app .ico { width:64px; height:64px; margin:0 auto 6px; border-radius:16px; display:flex; align-items:center; justify-content:center; box-shadow:0 4px 12px rgba(0,0,0,.3); transition:transform .14s cubic-bezier(.3,.7,.4,1.4); }
+  .app:hover .ico { transform:translateY(-4px) scale(1.06); } .app:active .ico { transform:scale(.92); transition-duration:.06s; }
+  .app .ico svg { width:32px; height:32px; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .app .dotbadge { position:absolute; top:-6px; right:2px; min-width:22px; height:22px; padding:0 6px; border-radius:11px; background:var(--red); color:#fff; font-size:11.5px; font-weight:700; line-height:22px; box-shadow:0 2px 6px rgba(0,0,0,.3); }
+
+  /* app switching, screen on/off */
+  .appin { animation:appin .26s cubic-bezier(.2,.8,.2,1); } @keyframes appin { from { transform:scale(.93); opacity:0; } }
+  .homein { animation:homein .3s cubic-bezier(.2,.8,.2,1); } @keyframes homein { from { transform:scale(1.06); opacity:.3; } }
+  body.ingame #screen::after { content:""; position:absolute; inset:0; background:#000; pointer-events:none; z-index:30; animation:poweron .5s ease-out forwards; }
+  @keyframes poweron { 0% { opacity:1; } 30% { opacity:1; } 100% { opacity:0; } }
+  body.ingame { transition:background .2s; } body.ingame.closing { background:rgba(6,9,14,0); }
+  body.closing #device { animation:sink .2s ease-in forwards; } @keyframes sink { to { transform:translateY(40px); opacity:0; } }
+
+  /* ---------- site chrome ---------- */
+  #site { flex:1; min-height:0; display:flex; flex-direction:column; }
+  .util { background:var(--navy); color:#b8c4de; font-size:12px; padding:5px 24px; display:flex; gap:18px; align-items:center; }
+  .util .sp { flex:1; } .util a { color:#fff; } .util .unit { opacity:.55; color:#fff; } .util .unit.on { opacity:1; font-weight:700; }
+  .util .clk2 { background:var(--yellow); color:#1b1f29; font-weight:700; padding:0 6px; border-radius:3px; }
+  header.top { background:#fff; border-bottom:1px solid var(--line); padding:12px 24px; display:flex; align-items:center; gap:28px; }
+  .logo { display:flex; align-items:center; gap:9px; cursor:pointer; flex:none; }
+  .logo .mark { width:34px; height:34px; border-radius:7px; background:var(--yellow); display:flex; align-items:center; justify-content:center; }
+  .logo .mark svg { width:22px; height:22px; stroke:var(--navy); stroke-width:2.2; fill:none; stroke-linecap:round; stroke-linejoin:round; }
+  .logo .wm { font-size:22px; font-weight:800; letter-spacing:-.4px; color:var(--navy); } .logo .wm span { color:var(--blue); font-weight:600; }
+  .search { flex:1; display:flex; max-width:640px; }
+  .search input { flex:1; border-radius:4px 0 0 4px; border-right:0; padding:10px 12px; }
+  .search button { border-radius:0 4px 4px 0; padding:0 18px; }
+  .acct { margin-left:auto; text-align:right; font-size:11.5px; color:var(--muted); line-height:1.2; flex:none; } .acct b { display:block; font-size:18px; color:var(--text); }
+  nav#nav { background:var(--blue); padding:0 14px; display:flex; align-items:stretch; }
+  nav#nav a { color:#dbe5fb; padding:10px 14px; font-weight:600; font-size:13.5px; border-bottom:3px solid transparent; display:flex; align-items:center; gap:6px; text-decoration:none; }
+  nav#nav a:hover { color:#fff; background:rgba(255,255,255,.06); } nav#nav a.on { color:#fff; border-bottom-color:var(--yellow); }
+  nav#nav .sp { flex:1; } nav#nav .meta { color:#c3d1f0; font-size:12px; display:flex; align-items:center; padding:0 10px; }
+  .cnt { background:rgba(255,255,255,.18); color:#fff; border-radius:9px; font-size:11px; padding:0 7px; line-height:18px; }
+  .cnt.red { background:var(--red); } .cnt.y { background:var(--yellow); color:#1b1f29; }
+  .livedot { width:8px; height:8px; border-radius:50%; background:#ff5a5a; box-shadow:0 0 0 0 rgba(255,90,90,.7); animation:ping 1.6s infinite; }
+  @keyframes ping { 70% { box-shadow:0 0 0 7px rgba(255,90,90,0); } 100% { box-shadow:0 0 0 0 rgba(255,90,90,0); } }
+  #conn { display:none; background:var(--red); color:#fff; padding:8px 24px; font-weight:600; }
+  main#main { flex:1; overflow:auto; scroll-behavior:auto; }
+  .wrap { padding:20px 24px 36px; max-width:1500px; margin:0 auto; }
+  .crumbs { font-size:12.5px; color:var(--muted); margin-bottom:10px; } .crumbs a { color:var(--muted); } .crumbs b { color:var(--text); font-weight:600; }
+  h1.pg { font-size:22px; margin:0 0 4px; letter-spacing:-.3px; } h2.sec { font-size:17px; margin:28px 0 12px; display:flex; align-items:baseline; gap:12px; } h2.sec a { font-size:13px; font-weight:600; margin-left:auto; }
+  .muted { color:var(--muted); font-size:12.5px; } .faint { color:var(--faint); }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:6px; }
+  .pad { padding:16px; }
+  .card h3, .block h3 { margin:0; padding:11px 16px; font-size:12px; letter-spacing:.06em; text-transform:uppercase; color:var(--navy); border-bottom:1px solid var(--line2); background:#fafbfc; border-radius:6px 6px 0 0; }
+  .empty { background:#fff; border:1px dashed #c9d0dc; border-radius:6px; padding:48px 20px; text-align:center; color:var(--muted); }
+  .empty b { display:block; color:var(--text); font-size:15px; margin-bottom:4px; }
+
+  /* tags */
+  .tag { display:inline-block; font-size:10.5px; font-weight:700; letter-spacing:.03em; padding:2px 6px; border-radius:3px; margin:4px 4px 0 0; white-space:nowrap; }
+  .t-salvage { background:var(--red-l); color:#b3261e; } .t-clean { background:var(--green-l); color:var(--green); } .t-seller { background:#edf0f5; color:#3d4659; }
+  .t-low { background:var(--amber-l); color:var(--amber); } .t-rd { background:var(--blue-l); color:var(--blue-d); } .t-insp { background:#efe7fb; color:#5b2da0; }
+  .t-mine { background:var(--navy); color:#fff; } .t-deal { background:#e3f6ec; color:#0d6b37; }
+  .chip-live { display:inline-flex; align-items:center; gap:5px; background:var(--red); color:#fff; font-size:11px; font-weight:700; letter-spacing:.04em; padding:2px 8px; border-radius:3px; }
+  .chip-live i { width:6px; height:6px; border-radius:50%; background:#fff; animation:blink 1s infinite; } @keyframes blink { 50% { opacity:.3; } }
+
+  /* lot cards */
+  .grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(250px, 1fr)); gap:14px; }
+  .lc { background:#fff; border:1px solid var(--line); border-radius:6px; overflow:hidden; cursor:pointer; display:flex; flex-direction:column; transition:box-shadow .12s, border-color .12s; }
+  .lc:hover { border-color:#b9c6e0; box-shadow:0 4px 14px rgba(16,32,72,.09); }
+  .lc .ph { position:relative; aspect-ratio:16/10; background:#dde2ea; }
+  .lc .ph img, .ph img, .hero-ph img { width:100%; height:100%; object-fit:cover; display:block; }
+  .lc .ov { position:absolute; left:8px; top:8px; } .lc .ov .when { background:rgba(12,20,38,.82); color:#fff; font-size:11.5px; font-weight:600; padding:3px 7px; border-radius:3px; }
+  .star { position:absolute; right:8px; top:8px; width:30px; height:30px; border-radius:50%; background:rgba(255,255,255,.92); display:flex; align-items:center; justify-content:center; color:#7a8294; box-shadow:0 1px 3px rgba(0,0,0,.2); }
+  .star:hover { color:var(--yellow-d); } .star.on { color:var(--yellow-d); } .star.on svg { fill:currentColor; }
+  .lc .bd { padding:10px 12px 12px; display:flex; flex-direction:column; flex:1; }
+  .lc .nm { font-weight:700; font-size:14px; line-height:1.3; color:var(--blue-d); display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; min-height:36px; }
+  .lc .meta { font-size:12px; color:var(--muted); margin-top:3px; }
+  .lc .pr { display:flex; justify-content:space-between; align-items:flex-end; margin-top:auto; padding-top:10px; border-top:1px solid var(--line2); }
+  .lc .pr .lab { font-size:10.5px; text-transform:uppercase; letter-spacing:.05em; color:var(--faint); } .lc .pr b { font-size:18px; display:block; letter-spacing:-.3px; }
+  .lc .pr .rt { text-align:right; font-size:12px; color:var(--muted); }
+  .lc .tags { min-height:24px; margin-bottom:6px; }
+  .win { color:var(--green); } .lose { color:var(--red); }
+
+  /* home page */
+  .hero { background:var(--navy); color:#fff; position:relative; overflow:hidden; }
+  .hero .bgimg { position:absolute; right:0; top:0; bottom:0; width:58%; background-size:cover; background-position:center; opacity:.42;
+    -webkit-mask-image:linear-gradient(90deg, transparent, #000 45%); mask-image:linear-gradient(90deg, transparent, #000 45%); }
+  .hero .in { position:relative; padding:38px 24px 34px; max-width:1500px; margin:0 auto; }
+  .hero h1 { font-size:34px; line-height:1.15; margin:0 0 8px; letter-spacing:-.6px; max-width:620px; font-weight:700; }
+  .hero p { margin:0 0 20px; color:#c3d1f0; max-width:560px; font-size:15px; }
+  .hero .search { max-width:620px; } .hero .search input { border:0; padding:13px 14px; font-size:15px; }
+  .quick { display:flex; flex-wrap:wrap; gap:8px; margin-top:14px; }
+  .quick a { color:#fff; font-size:12.5px; padding:5px 11px; border:1px solid rgba(255,255,255,.28); border-radius:16px; text-decoration:none; } .quick a:hover { background:rgba(255,255,255,.1); }
+  .stats { display:flex; gap:0; margin-top:26px; } .stats div { padding-right:28px; margin-right:28px; border-right:1px solid rgba(255,255,255,.18); }
+  .stats div:last-child { border:0; } .stats b { display:block; font-size:22px; } .stats span { font-size:12px; color:#b8c4de; }
+  .sellers { display:grid; grid-template-columns:repeat(4,1fr); gap:14px; }
+  .sl { background:#fff; border:1px solid var(--line); border-radius:6px; padding:16px; cursor:pointer; border-top:3px solid var(--c); }
+  .sl:hover { box-shadow:0 4px 14px rgba(16,32,72,.08); } .sl b { font-size:15px; } .sl .n { float:right; color:var(--muted); font-size:12.5px; } .sl p { margin:6px 0 0; color:var(--muted); font-size:12.5px; }
+  table.tb { width:100%; border-collapse:collapse; background:#fff; }
+  .tb th { text-align:left; font-size:11px; letter-spacing:.05em; text-transform:uppercase; color:var(--muted); padding:9px 12px; background:#f6f7f9; border-bottom:1px solid var(--line); font-weight:600; position:sticky; top:0; z-index:1; }
+  .tb td { padding:10px 12px; border-bottom:1px solid var(--line2); vertical-align:middle; }
+  .tb tr.click { cursor:pointer; } .tb tr.click:hover td { background:#f8faff; }
+  .tb .th { width:120px; height:75px; object-fit:cover; border-radius:4px; display:block; background:#dde2ea; }
+  .ctaband { display:grid; grid-template-columns:1.3fr 1fr 1fr; gap:14px; margin-top:28px; }
+  .ctaband .dark { background:var(--navy); color:#fff; border-radius:6px; padding:20px; } .ctaband .dark h3 { margin:0 0 6px; font-size:18px; } .ctaband .dark p { color:#c3d1f0; margin:0 0 14px; }
+  footer.ft { border-top:1px solid var(--line); margin-top:36px; padding-top:18px; display:grid; grid-template-columns:1fr 1fr 1.2fr; gap:28px; color:var(--muted); font-size:12.5px; }
+  footer.ft h4 { margin:0 0 6px; color:var(--text); font-size:12px; text-transform:uppercase; letter-spacing:.05em; }
+  footer.ft table { border-collapse:collapse; width:100%; } footer.ft td { padding:2px 0; border-bottom:1px dotted var(--line); } footer.ft td:last-child { text-align:right; }
+
+  /* find */
+  .find { display:grid; grid-template-columns:230px 1fr; gap:20px; align-items:start; }
+  aside.flt { background:#fff; border:1px solid var(--line); border-radius:6px; position:sticky; top:0; }
+  aside.flt .grp { padding:12px 14px; border-bottom:1px solid var(--line2); } aside.flt .grp:last-child { border:0; }
+  aside.flt h4 { margin:0 0 6px; font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  aside.flt label { display:flex; gap:8px; align-items:center; padding:3px 0; cursor:pointer; font-size:13.5px; } aside.flt label .c { margin-left:auto; color:var(--faint); font-size:12px; }
+  aside.flt .reset { padding:10px 14px; font-size:12.5px; }
+  .dd { position:relative; } .dd-btn { width:100%; display:flex; justify-content:space-between; gap:6px; text-align:left; background:#fff; color:var(--text); border:1px solid #c9d0dc; border-radius:4px; padding:7px 9px; font-weight:400; font-size:13px; }
+  .dd-list { position:absolute; left:0; right:0; top:100%; z-index:5; border:1px solid #c9d0dc; border-radius:0 0 4px 4px; background:#fff; box-shadow:0 8px 20px rgba(0,0,0,.12); max-height:340px; overflow:auto; }
+  .dd-list a { display:block; padding:7px 10px; color:var(--text); font-size:13px; text-decoration:none; } .dd-list a:hover { background:var(--blue-l); } .dd-list a.on { font-weight:700; color:var(--blue); }
+  .rbar { display:flex; align-items:center; gap:12px; margin-bottom:12px; }
+  .rbar .sp { flex:1; } .seg { display:inline-flex; border:1px solid #c9d0dc; border-radius:4px; overflow:hidden; } .seg a { padding:6px 11px; color:var(--muted); font-size:12.5px; text-decoration:none; } .seg a.on { background:var(--blue); color:#fff; }
+  .chips { display:flex; flex-wrap:wrap; gap:6px; margin-bottom:12px; }
+  .chip { font-size:12.5px; padding:4px 11px; border-radius:15px; background:#fff; border:1px solid #c9d0dc; color:var(--text); cursor:pointer; } .chip:hover { border-color:var(--blue); }
+  .chip.on { background:var(--blue); border-color:var(--blue); color:#fff; }
+  .pager { display:flex; gap:4px; justify-content:center; margin-top:18px; align-items:center; } .pager a { min-width:32px; text-align:center; padding:5px 8px; border:1px solid var(--line); border-radius:4px; background:#fff; color:var(--text); text-decoration:none; font-size:13px; }
+  .pager a.on { background:var(--blue); color:#fff; border-color:var(--blue); } .pager a.off { opacity:.4; pointer-events:none; }
+
+  /* lot page */
+  .lotgrid { display:grid; grid-template-columns:minmax(0,1.55fr) minmax(330px,1fr); gap:20px; align-items:start; }
+  .lothead { display:flex; align-items:flex-start; gap:16px; margin-bottom:14px; } .lothead .sp { flex:1; }
+  .hero-ph { position:relative; aspect-ratio:16/9; background:#dde2ea; border-radius:6px 6px 0 0; overflow:hidden; }
+  .hero-ph .cap { position:absolute; left:10px; bottom:10px; background:rgba(12,20,38,.78); color:#fff; font-size:11.5px; padding:3px 8px; border-radius:3px; }
+  .kv { width:100%; border-collapse:collapse; } .kv td { padding:8px 16px; border-bottom:1px solid var(--line2); font-size:13.5px; } .kv tr:last-child td { border:0; }
+  .kv td:first-child { color:var(--muted); width:44%; }
+  .sheet { display:grid; grid-template-columns:1fr 1fr; } .sheet div { padding:10px 16px; border-bottom:1px solid var(--line2); display:flex; justify-content:space-between; gap:10px; font-size:13.5px; }
+  .sheet div:nth-child(odd) { border-right:1px solid var(--line2); }
+  .st-ok { color:var(--green); font-weight:600; } .st-bad { color:var(--red); font-weight:600; } .st-unk { color:var(--amber); font-weight:600; }
+  ul.faults { margin:0; padding:12px 16px 12px 34px; } ul.faults li { color:#a3360f; margin:2px 0; }
+  .lotgrid > div:last-child, .floor > div:last-child { position:sticky; top:12px; }
+  .bp-top { padding:12px 16px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line2); font-size:13px; }
+  .bp-top .cd { font-weight:700; font-size:15px; }
+  .bp-main { padding:16px; }
+  .bp-main .lab { font-size:11px; text-transform:uppercase; letter-spacing:.06em; color:var(--muted); }
+  .bp-main .price { font-size:36px; font-weight:700; letter-spacing:-1px; color:var(--navy); line-height:1.1; }
+  .mystat { margin:10px 0; padding:9px 12px; border-radius:4px; font-weight:600; font-size:13.5px; } .mystat.w { background:var(--green-l); color:var(--green); } .mystat.l { background:var(--red-l); color:#b3261e; }
+  .bidrow { display:flex; gap:8px; margin-top:12px; } .bidrow input { flex:1; font-size:16px; padding:10px 12px; }
+  .incs { display:flex; gap:6px; margin-top:8px; } .incs a { flex:1; text-align:center; font-size:12.5px; padding:5px 0; border:1px solid var(--line); border-radius:4px; color:var(--text); text-decoration:none; background:#fafbfc; } .incs a:hover { border-color:var(--blue); color:var(--blue); }
+  .est { margin-top:10px; font-size:12.5px; color:var(--muted); background:#f6f7f9; border-radius:4px; padding:8px 10px; } .est b { color:var(--text); }
+  .bp-foot { padding:10px 16px; border-top:1px solid var(--line2); display:flex; gap:8px; }
+  .going { display:flex; gap:4px; margin:10px 0 2px; } .going i { flex:1; height:6px; border-radius:3px; background:var(--line); } .going i.on { background:var(--red); }
+  .going-txt { font-weight:800; letter-spacing:.06em; color:var(--red); font-size:13px; }
+  .hist { max-height:220px; overflow:auto; } .hist div { display:flex; justify-content:space-between; padding:6px 16px; border-bottom:1px solid var(--line2); font-size:13px; }
+  .hist div:first-child { font-weight:700; } .hist .you { color:var(--green); }
+
+  /* live floor */
+  .floor { display:grid; grid-template-columns:minmax(0,1fr) 340px; gap:20px; align-items:start; }
+  .block { background:#fff; border:1px solid var(--line); border-radius:6px; overflow:hidden; }
+  .block .bar { background:var(--navy); color:#fff; padding:10px 16px; display:flex; align-items:center; gap:12px; font-size:13px; } .block .bar .sp { flex:1; }
+  .block .body { display:grid; grid-template-columns:1.25fr 1fr; }
+  .block .body .ph { aspect-ratio:16/10; background:#dde2ea; }
+  .block .side { padding:18px; display:flex; flex-direction:column; }
+  .block .price { font-size:46px; font-weight:700; letter-spacing:-1.5px; color:var(--navy); line-height:1; margin:6px 0 2px; }
+  .block .lead { font-size:13.5px; color:var(--muted); } .block .lead b { color:var(--text); }
+  .flash { animation:flash .6s; } @keyframes flash { from { background:#fff3c4; } }
+  .queue .q { display:flex; gap:10px; padding:9px 12px; border-bottom:1px solid var(--line2); cursor:pointer; align-items:center; } .queue .q:hover { background:#f8faff; }
+  .queue .q.on { background:var(--blue-l); box-shadow:inset 3px 0 0 var(--blue); }
+  .queue .q img { width:76px; height:46px; object-fit:cover; border-radius:3px; background:#dde2ea; flex:none; }
+  .queue .q .t { flex:1; min-width:0; font-size:12.5px; } .queue .q .t b { display:block; font-size:13px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .queue .q .p { text-align:right; font-weight:700; font-size:13.5px; }
+
+  /* my bids / sell */
+  .tabs { display:flex; gap:0; border-bottom:1px solid var(--line); margin-bottom:14px; }
+  .tabs a { padding:9px 16px; color:var(--muted); font-weight:600; border-bottom:2px solid transparent; margin-bottom:-1px; text-decoration:none; } .tabs a.on { color:var(--blue); border-bottom-color:var(--blue); }
+  .venues { display:grid; grid-template-columns:1fr 1fr; gap:14px; }
+  .venue { background:#fff; border:1px solid var(--line); border-radius:6px; padding:18px; position:relative; }
+  .venue.col { background:linear-gradient(135deg, #10203f, #1b3263); color:#fff; border:0; } .venue.col .muted { color:#b8c4de; }
+  .venue h4 { margin:0 0 4px; font-size:16px; } .venue ul { margin:10px 0 0; padding-left:18px; font-size:13px; } .venue li { margin:3px 0; }
+  .venue .kick { font-size:10.5px; letter-spacing:.1em; text-transform:uppercase; font-weight:700; color:var(--yellow); }
+  .meter { height:6px; border-radius:3px; background:var(--line); overflow:hidden; width:120px; display:inline-block; vertical-align:middle; margin-right:6px; } .meter i { display:block; height:100%; background:var(--green); }
+
+  /* ---------- Bean Diag app ---------- */
+  #diag { display:none; flex:1; min-height:0; flex-direction:column; background:#0e1217; color:#e6edf3; }
+  body.on-diag #diag { display:flex; } body.ingame.on-diag #statusbar { background:#0b0f14; }
+  .dg-bar { display:flex; align-items:center; gap:12px; padding:12px 22px; background:#151b22; border-bottom:1px solid #222b35; flex:none; }
+  .dg-ico { width:36px; height:36px; border-radius:10px; background:#2b2f36; display:flex; align-items:center; justify-content:center; } .dg-ico svg { width:22px; height:22px; stroke:#7dff9a; fill:none; stroke-width:2; }
+  .dg-title b { font-size:16px; letter-spacing:.04em; } .dg-title span { display:block; font-size:11.5px; color:#8b98a8; }
+  .dg-bar .sp { flex:1; } .dg-bar a { color:#9fb0c2; font-size:13px; }
+  .pill { font-size:12px; padding:5px 11px; border-radius:14px; background:#1e2630; color:#9fb0c2; display:flex; gap:7px; align-items:center; white-space:nowrap; }
+  .pill i { width:8px; height:8px; border-radius:50%; background:#6b7787; } .pill.ok { background:rgba(47,168,79,.14); color:#6ee38d; } .pill.ok i { background:#4ade80; box-shadow:0 0 8px #4ade80; }
+  .dg-body { flex:1; min-height:0; display:grid; grid-template-columns:290px 1fr; }
+  .dg-side { border-right:1px solid #222b35; overflow:auto; padding:16px 14px; }
+  .dg-h { margin:0 0 10px; font-size:11px; letter-spacing:.08em; text-transform:uppercase; color:#7b8796; font-weight:600; }
+  .dv { display:flex; gap:10px; align-items:center; padding:9px; border-radius:10px; cursor:pointer; margin-bottom:6px; border:1px solid transparent; transition:background .12s; }
+  .dv:hover { background:#161d25; } .dv.on { background:#1a2430; border-color:#2c3c4f; }
+  .dv img { width:72px; height:42px; object-fit:cover; border-radius:6px; background:#1e2630; flex:none; }
+  .dv b { font-size:13px; display:block; line-height:1.25; } .dv small { font-size:11.5px; color:#8b98a8; display:flex; align-items:center; gap:6px; }
+  .dv small i { width:7px; height:7px; border-radius:50%; background:#6b7787; } .dv small i.g { background:#4ade80; }
+  .dg-main { overflow:auto; padding:22px 26px 40px; }
+  .dg-head { display:flex; gap:20px; align-items:center; margin-bottom:20px; }
+  .dg-head img { width:230px; height:130px; object-fit:cover; border-radius:14px; background:#1e2630; flex:none; }
+  .dg-head h2 { margin:0 0 4px; font-size:22px; } .dg-head .sub { color:#8b98a8; font-size:13px; } .dg-head .sp { flex:1; }
+  .scanbtn { background:#2fa84f; color:#fff; font-size:15px; padding:13px 30px; border-radius:12px; letter-spacing:.04em; box-shadow:0 4px 14px rgba(47,168,79,.3); } .scanbtn:hover:not(:disabled) { background:#36bf5a; }
+  .ghost { background:#1e2630; color:#c3ccd6; border-radius:10px; } .ghost:hover:not(:disabled) { background:#26303c; }
+  .dg-grid { display:grid; grid-template-columns:280px minmax(0,1fr); gap:18px; align-items:start; }
+  .panel { background:#151b22; border:1px solid #222b35; border-radius:14px; overflow:hidden; } .panel .dg-h { padding:12px 14px 2px; }
+  .mod { display:flex; justify-content:space-between; align-items:center; padding:10px 14px; border-top:1px solid #1e2630; font-size:13px; }
+  .st { font-size:12px; font-weight:600; } .st.ok { color:#6ee38d; } .st.bad { color:#ff7b72; } .st.wait { color:#5d6878; } .st.run { color:#ffd166; }
+  .spin { width:11px; height:11px; border:2px solid #ffd166; border-right-color:transparent; border-radius:50%; display:inline-block; animation:spin .7s linear infinite; vertical-align:-1px; margin-right:6px; } @keyframes spin { to { transform:rotate(360deg); } }
+  .prog { height:4px; background:#1e2630; } .prog i { display:block; height:100%; background:#2fa84f; transition:width .3s linear; }
+  .term { font-family:Consolas, "Courier New", monospace; font-size:12.5px; color:#7dff9a; background:#0b0f14; border:1px solid #1e2630; border-radius:14px; padding:14px 16px; min-height:200px; line-height:1.7; }
+  .term .cur { display:inline-block; width:8px; height:14px; background:#7dff9a; vertical-align:-2px; animation:blink 1s steps(1) infinite; }
+  .sum { display:grid; grid-template-columns:repeat(4, 1fr) auto; gap:10px; margin-bottom:14px; }
+  .sum > div { background:#151b22; border:1px solid #222b35; border-radius:12px; padding:12px 16px; } .sum b { display:block; font-size:22px; } .sum span { font-size:11px; color:#8b98a8; text-transform:uppercase; letter-spacing:.06em; }
+  .sum > div.act { display:flex; align-items:center; background:none; border:0; padding:0; }
+  .fault { background:#151b22; border:1px solid #222b35; border-left:4px solid var(--sev); border-radius:12px; padding:14px 16px; margin-bottom:10px; display:grid; grid-template-columns:minmax(0,1fr) auto; gap:16px; animation:drop .25s ease-out both; }
+  .codes { display:flex; flex-wrap:wrap; gap:6px; align-items:center; } .codes code { font-family:Consolas, monospace; background:#0b0f14; border:1px solid #2a3340; color:#fff; padding:2px 7px; border-radius:5px; font-size:12.5px; }
+  .sevb { font-size:10.5px; font-weight:700; letter-spacing:.06em; padding:2px 7px; border-radius:4px; color:var(--sev); background:#0b0f14; }
+  .fault .desc { color:#c3ccd6; font-size:13px; margin:8px 0 6px; } .fault .part { font-size:13.5px; font-weight:600; } .fault .fix { color:#6ee38d; font-size:12.5px; }
+  .fault .cost { text-align:right; min-width:150px; } .fault .cost b { font-size:20px; display:block; } .fault .cost small { color:#8b98a8; font-size:11.5px; display:block; margin-bottom:10px; }
+  .allgood { text-align:center; padding:46px 20px; } .allgood .ck { width:64px; height:64px; border-radius:50%; background:rgba(47,168,79,.15); color:#4ade80; display:flex; align-items:center; justify-content:center; margin:0 auto 12px; }
+  .allgood .ck svg { width:32px; height:32px; stroke-width:2.5; } .allgood b { font-size:18px; display:block; margin-bottom:4px; } .allgood span { color:#8b98a8; }
+  .dg-empty { display:flex; flex-direction:column; align-items:center; justify-content:center; text-align:center; color:#8b98a8; padding:50px 20px; }
+  .dg-empty.full { flex:1; } .dg-empty .ring { width:96px; height:96px; border-radius:50%; background:#151b22; border:1px solid #222b35; display:flex; align-items:center; justify-content:center; }
+  .dg-empty .ring svg { width:46px; height:46px; stroke:#7dff9a; fill:none; stroke-width:1.6; stroke-linecap:round; stroke-linejoin:round; }
+  body.on-diag #homebar { background:rgba(255,255,255,.45); }
+  .dg-empty b { color:#e6edf3; font-size:18px; display:block; margin:14px 0 4px; } .dg-empty img { width:320px; max-width:80%; border-radius:14px; opacity:.45; filter:grayscale(.6); }
+  .dg-tabs { display:flex; gap:4px; margin:-4px 0 16px; border-bottom:1px solid #222b35; } .dg-tabs a { color:#8b98a8; padding:8px 14px; font-weight:600; font-size:13.5px; border-bottom:2px solid transparent; margin-bottom:-1px; text-decoration:none; }
+  .dg-tabs a.on { color:#e6edf3; border-bottom-color:#4ade80; }
+  .rf-top { display:flex; gap:24px; align-items:center; background:#151b22; border:1px solid #222b35; border-radius:14px; padding:16px 20px; margin-bottom:14px; } .rf-top p { flex:1; color:#9fb0c2; font-size:13px; margin:0; }
+  .rf-big { font-size:38px; font-weight:700; letter-spacing:-1px; line-height:1.1; } .rf-big span { font-size:15px; color:#8b98a8; font-weight:500; }
+  .rf-grid { display:grid; grid-template-columns:repeat(auto-fill, minmax(260px, 1fr)); gap:12px; }
+  .rf { padding:14px 16px; } .rf-h { display:flex; justify-content:space-between; align-items:baseline; } .rf-h b { font-size:14px; } .rf-h span { font-size:20px; font-weight:700; }
+  .rf-bar { position:relative; height:8px; border-radius:4px; background:#1e2630; margin:10px 0 8px; } .rf-bar i { display:block; height:100%; border-radius:4px; transition:width .4s; }
+  .rf-bar b { position:absolute; top:-3px; bottom:-3px; width:2px; background:#e6edf3; opacity:.55; }
+  .rf-sub { font-size:12px; color:#8b98a8; } .rf-f { display:flex; justify-content:space-between; align-items:center; margin-top:12px; } .rf-f span { font-size:17px; font-weight:700; }
+  .sev-Critical { --sev:#ff7b72; } .sev-Moderate { --sev:#ffd166; } .sev-Minor { --sev:#79c0ff; }
+
+  /* notifications */
+  #notes { position:absolute; top:34px; left:50%; transform:translateX(-50%); z-index:20; display:flex; flex-direction:column; gap:8px; width:min(440px, 90%); pointer-events:none; }
+  body:not(.ingame) #notes { position:fixed; top:auto; bottom:20px; left:auto; right:20px; transform:none; }
+  .note { background:rgba(255,255,255,.97); color:var(--text); border-radius:12px; padding:11px 14px; box-shadow:0 8px 26px rgba(0,0,0,.22); display:flex; gap:11px; align-items:center; animation:drop .22s ease-out; font-size:13.5px; border-left:4px solid var(--green); }
+  .note.err { border-left-color:var(--red); } .note.info { border-left-color:var(--blue); }
+  .note .ni { width:30px; height:30px; flex:none; border-radius:8px; background:var(--yellow); display:flex; align-items:center; justify-content:center; } .note .ni svg { width:18px; height:18px; stroke:var(--navy); fill:none; stroke-width:2.2; }
+  .note small { display:block; color:var(--muted); font-size:11px; text-transform:uppercase; letter-spacing:.05em; }
+  @keyframes drop { from { transform:translateY(-10px); opacity:0; } }
+
+  @media (max-width: 1100px) {
+    .lk { grid-template-columns:1fr; } .widgets { display:none; }
+    .find { grid-template-columns:1fr; } aside.flt { position:static; }
+    .lotgrid, .floor, .ctaband, .venues, .scanapp { grid-template-columns:1fr; } .sellers { grid-template-columns:1fr 1fr; }
+    .block .body { grid-template-columns:1fr; } footer.ft { grid-template-columns:1fr; }
+    header.top { flex-wrap:wrap; } .search { order:3; flex-basis:100%; max-width:none; }
+  }
+</style>
+</head>
+<body>
+<div id="device">
+  <div id="screen">
+    <div id="statusbar"><span id="sb-time">--:--</span><span class="r"><span id="sb-net"></span><span class="batt"><span id="sb-batt">100%</span><i id="sb-batti"></i></span><button id="power" title="Put the tablet away (Esc)" onclick="closeTablet()"></button></span></div>
+    <div id="launcher"></div>
+    <div id="site">
+      <div class="util"><span id="u-left">Salvage &middot; Insurance &middot; Repo &middot; Collector</span><span class="sp"></span><span id="u-clock"></span><span id="u-yard"></span><span id="units"></span><span id="weblink"></span></div>
+      <header class="top">
+        <div class="logo" onclick="go('home')"><div class="mark"></div><div class="wm">Bean<span>Auctions</span></div></div>
+        <div class="search"><input id="q" placeholder="Search by make, model, year or lot number"><button class="btn-y" onclick="search()">Search</button></div>
+        <div class="acct">Available balance<b id="money" class="num">$0</b></div>
+      </header>
+      <nav id="nav"></nav>
+      <div id="conn"></div>
+      <main id="main"></main>
+    </div>
+    <div id="diag"></div>
+    <div id="homebar" title="Home" onclick="go('launcher')"></div>
+    <div id="notes"></div>
+  </div>
+</div>
+
+<script>
+// Runs inside the game (iframe over the game UI, talks through bngApi) or in a normal browser
+// (websocket to the game's web server, see startWeb in beanAuctions.lua).
+const inGame = window.parent !== window && !!parent.bngApi;
+const webKey = new URLSearchParams(location.search).get('key');
+let ws = null;
+function setConn(msg) { const c = document.getElementById('conn'); c.textContent = msg || ''; c.style.display = msg ? 'block' : 'none'; }
+function connect() {
+  ws = new WebSocket(`ws://${location.host}/`, 'beanauctions');
+  ws.onopen = () => { setConn(); act('refresh'); };
+  ws.onmessage = e => {
+    const d = JSON.parse(e.data);
+    if (!d.badKey) return baState(d);
+    ws.onclose = null; ws.close();
+    setConn('This link is missing its access key. Copy the link again from the auction site in the game.');
+  };
+  ws.onclose = () => { setConn('Not connected to BeamNG. Load a career save and this page reconnects by itself.'); setTimeout(connect, 2000); };
+}
+
+// ---------- state ----------
+let S = { lots: [], money: 0, garage: [], venues: { salvageFee: [100, 0.08], collectorFee: [0, 0.1] } }, gotAt = Date.now();
+let view = (location.hash || '').slice(1) || (inGame ? 'launcher' : 'home');
+if (!inGame && view === 'launcher') view = 'home';
+let lotId = null, drafts = {}, scanVeh = null, sortOpen = false, page = 0, liveFocus = null, myTab = 'active', heroQ = '';
+const store = (k, v) => { try { if (v === undefined) return localStorage.getItem(k); localStorage.setItem(k, v); } catch (e) { return null; } };
+let unitPref = store('baUnits');
+let layout = store('baLayout') || 'grid';
+let watch = new Set(JSON.parse(store('baWatch') || '[]'));
+const hist = {}; // lotId -> [{who, price, t}] newest first, built from what this page has seen
+let prev = {};   // lotId -> {state, winning} from the last update, for notifications
+const openedAt = Date.now();
+let wallpaper = null;
+
+const sellers = [
+  ['Insurance', '#1d4ea8', 'Late-model write-offs on a salvage title. Low miles, real damage.'],
+  ['Repo', '#1e7b3a', 'Clean-title repossessions that run and drive. Small issues at most.'],
+  ['Salvage Pool', '#c2410c', 'High-mileage wrecks and parts cars. Bring a trailer.'],
+  ['Dealer Trade-In', '#6d28d9', 'Lot rejects and high-mile runners. Some run rough.'],
+];
+const filters = { salvage: true, clean: true, rd: false, lowMiles: false, liveOnly: false, under5k: false, sellers: {}, sort: 'ending' };
+
+// ---------- helpers ----------
+const $ = s => document.querySelector(s);
+const money = n => '$' + Math.round(n || 0).toLocaleString('en-US');
+const esc = s => String(s ?? '').replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const elapsed = () => Math.floor((Date.now() - gotAt) / 1000 * (S.speed || 1));
+const left = l => Math.max(0, l.timeLeft - elapsed());
+const clock = s => s >= 3600 ? `${Math.floor(s / 3600)}h ${Math.floor(s % 3600 / 60)}m` : s >= 60 ? `${Math.floor(s / 60)}m ${String(s % 60).padStart(2, '0')}s` : `${s}s`;
+const useMi = () => (unitPref || (S.units === 'imperial' ? 'mi' : 'km')) === 'mi';
+const odo = km => useMi() ? `${Math.round(km * 0.621371).toLocaleString()} mi` : `${km.toLocaleString()} km`;
+const lowMiles = l => l.km < 80000;
+const open = l => l.state === 'prebid' || l.state === 'live';
+const isLive = l => l.state === 'live';
+const idleOf = l => l.idle + elapsed();
+const increment = p => p < 1000 ? 50 : p < 5000 ? 100 : p < 20000 ? 250 : 500;
+const buyerFee = p => Math.floor(100 + p * (p < 5000 ? 0.12 : p < 20000 ? 0.09 : 0.07));
+const pct = f => `${Math.round(f[1] * 100)}%${f[0] ? ' + ' + money(f[0]) : ''}`;
+const reserveMet = l => !l.reserve || l.price >= l.reserve;
+const title = l => `${l.year} ${esc(l.name)}`;
+const photo = (src, cls = '') => `<img class="${cls}" src="${esc(src || '')}" onerror="this.style.visibility='hidden'">`;
+const bigSpread = l => open(l) && !!l.leader && l.retail > 2000 && l.price < l.retail * 0.35; // opening bids are always low, so only once bidding is real
+
+const I = {
+  gavel: '<path d="M14 13l-7.5 7.5a2.1 2.1 0 01-3-3L11 10"/><path d="M16 16l6-6"/><path d="M8 8l6-6"/><path d="M9 7l8 8"/><path d="M21 11l-8-8"/>',
+  search: '<circle cx="11" cy="11" r="7"/><path d="M21 21l-4.3-4.3"/>',
+  star: '<path d="M12 3l2.8 5.7 6.2.9-4.5 4.4 1.1 6.2L12 17.3 6.4 20.2l1.1-6.2L3 9.6l6.2-.9z"/>',
+  clock: '<circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/>',
+  obd: '<rect x="3" y="6" width="18" height="12" rx="2"/><path d="M7 10h.01M10 10h.01M13 10h.01M16 10h.01M8.5 14h.01M11.5 14h.01M14.5 14h.01"/>',
+  tag: '<path d="M20.6 13.4l-7.2 7.2a2 2 0 01-2.8 0L3 13V3h10l7.6 7.6a2 2 0 010 2.8z"/><circle cx="7.5" cy="7.5" r="1.5"/>',
+  live: '<circle cx="12" cy="12" r="3"/><path d="M6.3 6.3a8 8 0 000 11.4M17.7 6.3a8 8 0 010 11.4M3.5 3.5a12 12 0 000 17M20.5 3.5a12 12 0 010 17"/>',
+  wifi: '<path d="M5 12.5a10 10 0 0114 0M8.5 16a5 5 0 017 0M2 9a14 14 0 0120 0"/><path d="M12 19.5h.01"/>',
+  power: '<path d="M12 3v9"/><path d="M6.3 6.3a8 8 0 1011.4 0"/>',
+  pin: '<path d="M12 21s-7-6.2-7-11.5A7 7 0 0119 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/>',
+  truck: '<path d="M2 7h11v9H2zM13 10h4l3 3v3h-7z"/><circle cx="6" cy="17.5" r="1.8"/><circle cx="17" cy="17.5" r="1.8"/>',
+  check: '<path d="M5 12l5 5L20 7"/>',
+};
+const icon = (n, extra = '') => `<svg class="i" viewBox="0 0 24 24" ${extra}>${I[n]}</svg>`;
+
+function act(action, id = 0, amount = 0, arg = '') {
+  if (inGame) parent.bngApi.engineLua(`career_modules_beanAuctions.uiAction(${JSON.stringify(action)}, ${+id}, ${+amount}, ${JSON.stringify(String(arg))})`);
+  else if (ws && ws.readyState === 1) ws.send(JSON.stringify({ key: webKey, action, id: +id, amount: +amount, arg: String(arg) }));
+}
+function bid(id) {
+  const v = parseInt(String(drafts[id] ?? '').replace(/[^0-9]/g, ''));
+  if (!v) return note('Enter your max bid first', 'err');
+  act('bid', id, v);
+}
+function bump(id, add) {
+  const l = S.lots.find(x => x.id === id); if (!l) return;
+  const cur = parseInt(String(drafts[id] ?? '').replace(/[^0-9]/g, '')) || 0;
+  drafts[id] = String(add ? Math.max(cur, l.nextBid) + add : l.nextBid);
+  render();
+}
+function toggleWatch(id, ev) {
+  if (ev) ev.stopPropagation();
+  watch.has(id) ? watch.delete(id) : watch.add(id);
+  store('baWatch', JSON.stringify([...watch]));
+  render();
+}
+const starBtn = l => `<a class="star ${watch.has(l.id) ? 'on' : ''}" title="${watch.has(l.id) ? 'Remove from watchlist' : 'Add to watchlist'}" onclick="toggleWatch(${l.id}, event)">${icon('star')}</a>`;
+
+// ---------- notifications ----------
+function note(msg, kind = 'ok', head) {
+  const diag = view === 'scan' && !head; // notifications come from whichever app is open
+  const n = document.createElement('div');
+  n.className = 'note ' + kind;
+  n.innerHTML = `<div class="ni" style="${diag ? 'background:#2b2f36' : ''}"><svg viewBox="0 0 24 24" style="${diag ? 'stroke:#7dff9a' : ''}">${diag ? I.obd : I.gavel}</svg></div><div><small>${esc(head || (diag ? 'Bean Diag' : 'BeanAuctions'))}</small>${esc(msg)}</div>`;
+  $('#notes').prepend(n);
+  while ($('#notes').children.length > 3) $('#notes').lastChild.remove();
+  setTimeout(() => n.remove(), 3800);
+}
+
+window.baState = data => {
+  // Lua's jsonEncode sends empty tables as {} not [], so coerce every list back to an array
+  const arr = x => Array.isArray(x) ? x : [];
+  data.lots = arr(data.lots); data.lots.forEach(l => l.known = arr(l.known));
+  data.garage = arr(data.garage);
+  data.venues = data.venues || S.venues;
+  if (data.scan) { data.scan.vehicles = arr(data.scan.vehicles); data.scan.vehicles.forEach(v => { if (v.faults) v.faults = arr(v.faults); v.refurb = arr(v.refurb); }); }
+  const first = !S.lots.length;
+  for (const l of data.lots) {
+    // bid history from the updates this page sees
+    const h = hist[l.id] = hist[l.id] || [];
+    if (l.leader && (!h[0] || h[0].price !== l.price || h[0].who !== l.leader)) h.unshift({ who: l.leader, price: l.price, t: Date.now() });
+    if (h.length > 40) h.length = 40;
+    const p = prev[l.id];
+    if (!first && p) {
+      const name = `${l.year} ${l.name}`;
+      if (p.state === 'prebid' && l.state === 'live' && (watch.has(l.id) || l.myMax != null || l.consigned)) note(`Lot #${l.id} ${name} is live now`, 'info', 'Live auction');
+      if (p.winning && !l.winning && l.myMax != null && open(l)) note(`You were outbid on the ${name}`, 'err', 'Outbid');
+    }
+  }
+  prev = Object.fromEntries(data.lots.map(l => [l.id, { state: l.state, winning: l.winning }]));
+  if (!wallpaper) {
+    const best = data.lots.filter(l => l.preview && open(l)).sort((a, b) => b.retail - a.retail)[0];
+    if (best) wallpaper = best.preview;
+  }
+  S = data; gotAt = Date.now(); loaded = true;
+  if (data.message) note(data.message, data.isError ? 'err' : 'ok');
+  render();
+};
+
+// ---------- navigation ----------
+function go(v) { view = v; lotId = null; sortOpen = false; if (v === 'find') page = 0; render(); $('#main').scrollTop = 0; }
+function openLot(id) { view = 'lot'; lotId = id; render(); $('#main').scrollTop = 0; }
+function search() { heroQ = ''; go('find'); }
+function preset(p) {
+  Object.assign(filters, { salvage: true, clean: true, rd: false, lowMiles: false, liveOnly: false, under5k: false, sellers: {} });
+  if (p === 'rd') filters.rd = true;
+  if (p === 'low') filters.lowMiles = true;
+  if (p === 'clean') filters.salvage = false;
+  if (p === 'salvage') filters.clean = false;
+  if (p === 'live') filters.liveOnly = true;
+  if (p === 'cheap') filters.under5k = true;
+  if (p && p.startsWith('seller:')) { const keep = p.slice(7); sellers.forEach(([s]) => filters.sellers[s] = s !== keep); }
+  $('#q').value = '';
+  go('find');
+}
+function setF(k, v) { filters[k] = v; page = 0; render(); }
+function setUnits(u) { unitPref = u; store('baUnits', u); render(); }
+function setLayout(v) { layout = v; store('baLayout', v); render(); }
+
+const sorts = [
+  ['ending', 'Sale date: soonest first', (a, b) => a.timeLeft - b.timeLeft],
+  ['endingLast', 'Sale date: latest first', (a, b) => b.timeLeft - a.timeLeft],
+  ['low', 'Current bid: low to high', (a, b) => a.price - b.price],
+  ['high', 'Current bid: high to low', (a, b) => b.price - a.price],
+  ['retail', 'Est. retail: high to low', (a, b) => b.retail - a.retail],
+  ['retailLow', 'Est. retail: low to high', (a, b) => a.retail - b.retail],
+  ['spread', 'Biggest spread (retail minus bid)', (a, b) => (b.retail - b.price) - (a.retail - a.price)],
+  ['milesLow', 'Odometer: lowest first', (a, b) => a.km - b.km],
+  ['milesHigh', 'Odometer: highest first', (a, b) => b.km - a.km],
+  ['newest', 'Year: newest first', (a, b) => b.year - a.year],
+  ['oldest', 'Year: oldest first', (a, b) => a.year - b.year],
+  ['name', 'Make / model: A to Z', (a, b) => a.name.localeCompare(b.name)],
+  ['bidders', 'Fewest bidders', (a, b) => a.bidders - b.bidders],
+];
+
+// ---------- shared bits ----------
+function when(l) {
+  if (isLive(l)) return `<span class="chip-live"><i></i>LIVE NOW</span>`;
+  if (l.state === 'prebid') return `<span class="when num">${icon('clock')} ${clock(left(l))}</span>`;
+  if (l.state === 'won') return `<span class="tag t-mine">YOU WON</span>`;
+  if (l.state === 'sold') return `<span class="when">Sold</span>`;
+  if (l.state === 'noSale') return `<span class="when">No sale</span>`;
+  if (l.state === 'collected') return `<span class="when">Collected</span>`;
+  return `<span class="when">Preparing</span>`;
+}
+function statusText(l) {
+  if (isLive(l)) return `<span class="chip-live"><i></i>LIVE</span>`;
+  if (l.state === 'prebid') return `<span class="muted">Live in</span> <b class="num">${clock(left(l))}</b>`;
+  if (l.state === 'won') return `<span class="tag t-mine">YOU WON</span>`;
+  if (l.state === 'sold') return `<span class="muted">Sold${l.leader ? ' to ' + esc(l.leader) : ''}</span>`;
+  if (l.state === 'collected') return `<span class="muted">Collected</span>`;
+  if (l.state === 'noSale') return `<span class="muted">No sale</span>`;
+  return `<span class="muted">Preparing vehicle...</span>`;
+}
+function tags(l) {
+  return `<span class="tag ${l.title === 'Salvage' ? 't-salvage' : 't-clean'}">${esc(l.title).toUpperCase()}</span>`
+    + (l.runsAndDrives ? `<span class="tag t-rd">RUN &amp; DRIVE</span>` : '')
+    + (lowMiles(l) ? `<span class="tag t-low">LOW MILES</span>` : '')
+    + (l.inspected ? `<span class="tag t-insp">INSPECTED</span>` : '')
+    + (l.consigned ? `<span class="tag t-mine">YOUR CAR</span>` : '')
+    + (bigSpread(l) ? `<span class="tag t-deal">BIG SPREAD</span>` : '');
+}
+function myLine(l) {
+  if (l.consigned) return `<span class="muted">You get ${money(l.payout)}</span>`;
+  if (l.myMax == null) return `<span class="muted">${l.bidders} bidder${l.bidders === 1 ? '' : 's'}</span>`;
+  return `<span class="${l.winning ? 'win' : 'lose'}" style="font-size:12px;font-weight:600">${l.winning ? 'High bidder' : 'Outbid'} &middot; max ${money(l.myMax)}</span>`;
+}
+function card(l) {
+  return `<div class="lc" onclick="openLot(${l.id})">
+    <div class="ph">${photo(l.preview)}<div class="ov">${when(l)}</div>${starBtn(l)}</div>
+    <div class="bd"><div class="nm">${title(l)}</div>
+      <div class="meta">Lot #${l.id} &middot; ${odo(l.km)} &middot; ${esc(l.primary).toLowerCase()}</div>
+      <div class="tags">${tags(l)}</div>
+      <div class="pr"><div><span class="lab">${l.leader ? 'Current bid' : 'Starting bid'}</span><b class="num ${l.myMax != null ? (l.winning ? 'win' : 'lose') : ''}">${money(l.price)}</b>${myLine(l)}</div>
+        <div class="rt">Est. retail<br><b class="num" style="font-size:13px;color:var(--text)">${money(l.retail)}</b></div></div>
+    </div></div>`;
+}
+const foot = () => `<footer class="ft">
+    <div><h4>How it works</h4>Pre-bid any time: set a max bid and we bid for you. When a lot's timer runs out it goes to a live auction; the hammer falls after a few seconds without a new bid. All vehicles are sold as-is, where-is.</div>
+    <div><h4>Getting your car</h4>Pick it up at the yard for free, have it towed for ${money(S.towFee || 400)} (about ${S.towMinutes || 5} minutes), or pay ${money(S.instaTowFee || 1200)} for instant delivery to your garage.</div>
+    <div><h4>Buyer fees</h4><table class="num"><tr><td>Under $5,000</td><td>12% + $100</td></tr><tr><td>$5,000 to $19,999</td><td>9% + $100</td></tr><tr><td>$20,000 and up</td><td>7% + $100</td></tr></table></div>
+  </footer>`;
+
+// ---------- tablet home screen ----------
+function launcherView() {
+  const now = new Date();
+  const live = S.lots.filter(isLive);
+  const mineOpen = S.lots.filter(l => l.myMax != null && open(l));
+  const won = S.lots.filter(l => l.state === 'won').length;
+  const next = S.lots.filter(l => l.state === 'prebid' && !l.consigned).sort((a, b) => a.timeLeft - b.timeLeft)[0];
+  const sold = S.lots.filter(l => l.state === 'sold').slice(-4).reverse();
+  const cars = (S.scan && S.scan.vehicles) || [], near = cars.filter(v => v.inRange);
+  const feat = live.sort((a, b) => b.retail - a.retail)[0] || next;
+  const app = (v, label, bg, ic, stroke, badge) => `<div class="app" onclick="go('${v}')">${badge ? `<span class="dotbadge">${badge}</span>` : ''}<div class="ico" style="background:${bg}"><svg viewBox="0 0 24 24" style="stroke:${stroke}">${I[ic]}</svg></div>${label}</div>`;
+  const hero = feat ? `<div class="hero-w" onclick="${isLive(feat) ? `liveFocus=${feat.id};go('live')` : `openLot(${feat.id})`}">
+      <div class="ph">${photo(feat.preview)}${isLive(feat) ? '<span class="chip-live"><i></i>ON THE BLOCK</span>' : `<span class="when num">Up next &middot; ${clock(left(feat))}</span>`}</div>
+      <div class="tx"><div class="n"><b>${title(feat)}</b><span>${esc(feat.primary).toLowerCase()} &middot; ${odo(feat.km)} &middot; retail ${money(feat.retail)}</span></div>
+        <div class="p"><b class="num">${money(feat.price)}</b><span>${isLive(feat) ? (feat.leader ? esc(feat.leader) : 'no bids yet') : 'starting bid'}</span></div></div>
+      ${isLive(feat) ? `<div class="goingbar">${[0, 1, 2].map(i => `<i class="${idleOf(feat) >= 3 * i + 1 ? 'on' : ''}"></i>`).join('')}</div>` : ''}
+    </div>` : '';
+  return `<div class="wall" style="${wallpaper ? `background-image:url('${esc(wallpaper)}')` : ''}"></div><div class="wall-tint"></div>
+    <div class="lk"><div>
+      <div class="lk-clock num">${now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+      <div class="lk-date">${now.toLocaleDateString([], { weekday: 'long', month: 'long', day: 'numeric' })}</div>
+      ${hero}</div>
+      <div class="widgets">
+        <div class="wdg" onclick="go('home')"><h5>Available balance</h5><div class="big num">${money(S.money)}</div></div>
+        <div class="wdg" onclick="go('mine')"><h5>My bids</h5><div class="row3">
+          <div><b class="num">${mineOpen.filter(l => l.winning).length}</b><span>Winning</span></div>
+          <div><b class="num">${mineOpen.filter(l => !l.winning).length}</b><span>Outbid</span></div>
+          <div><b class="num">${won}</b><span>To collect</span></div></div></div>
+        <div class="wdg" onclick="go('scan')"><h5>Bean Diag</h5><div class="diagline"><i class="${near.length ? 'g' : ''}"></i>${near.length ? `Ready to scan: ${esc(near[0].name)}` : cars.length ? 'No vehicle in range' : 'No vehicles owned'}</div></div>
+        ${sold.length ? `<div class="wdg" onclick="go('home')"><h5>Just sold</h5><div class="ticker">${sold.map(l => `<div><span>${title(l)}</span><b class="num">${money(l.price)}</b></div>`).join('')}</div></div>` : ''}
+      </div>
+    </div>
+    <div class="dock">
+      ${app('home', 'BeanAuctions', '#ffc120', 'gavel', '#0c2350')}
+      ${app('live', 'Live', '#d32f2f', 'live', '#fff', live.length || '')}
+      ${app('mine', 'My Bids', '#1d4ea8', 'star', '#fff', won || '')}
+      ${app('sell', 'Sell', '#1e7b3a', 'tag', '#fff')}
+      ${app('scan', 'Bean Diag', '#2b2f36', 'obd', '#7dff9a')}
+    </div>`;
+}
+
+// ---------- site pages ----------
+function homeView() {
+  const openLots = S.lots.filter(open).filter(l => !l.consigned);
+  const live = S.lots.filter(isLive);
+  const soon = openLots.filter(l => l.state === 'prebid').sort((a, b) => a.timeLeft - b.timeLeft).slice(0, 10);
+  const deals = openLots.filter(l => l.state === 'prebid').sort((a, b) => (b.retail - b.price) - (a.retail - a.price)).slice(0, 4);
+  const sold = S.lots.filter(l => l.state === 'sold' && !l.consigned).slice(-6).reverse();
+  const next = soon[0];
+  const count = s => openLots.filter(l => l.seller === s).length;
+  const heroImg = live[0] || next;
+  return `<div class="hero">${heroImg && heroImg.preview ? `<div class="bgimg" style="background-image:url('${esc(heroImg.preview)}')"></div>` : ''}<div class="in">
+      <h1>Wrecks, repos and runners. A new car hits the block every 40 seconds.</h1>
+      <p>Insurance write-offs, bank repos and trade-ins from all over the county. Pre-bid now, or jump into a live sale.</p>
+      <div class="search"><input id="hq" placeholder="Try &quot;Bolide&quot;, &quot;pickup&quot; or a lot number" value="${esc(heroQ)}" oninput="heroQ=this.value" onkeydown="if(event.key==='Enter'){document.getElementById('q').value=heroQ;search()}"><button class="btn-y" onclick="document.getElementById('q').value=heroQ;search()">Find vehicles</button></div>
+      <div class="quick"><a onclick="preset('rd')">Run &amp; drive</a><a onclick="preset('low')">Low miles</a><a onclick="preset('clean')">Clean title</a><a onclick="preset('salvage')">Salvage title</a><a onclick="preset('cheap')">Under $5,000</a><a onclick="preset('live')">Live now</a></div>
+      <div class="stats num"><div><b>${openLots.length}</b><span>vehicles for sale</span></div><div><b>${live.length}</b><span>selling right now</span></div><div><b>${next ? clock(left(next)) : '-'}</b><span>until the next sale</span></div><div><b>${money(S.money)}</b><span>your buying power</span></div></div>
+    </div></div>
+    <div class="wrap">
+      ${live.length ? `<h2 class="sec"><span class="chip-live"><i></i>LIVE</span> Selling right now <a onclick="go('live')">Join the live auction &rarr;</a></h2><div class="grid">${live.slice(0, 4).map(card).join('')}</div>` : ''}
+      <h2 class="sec">Up next <span class="muted">Pre-bid before the timer runs out</span><a onclick="preset()">View all ${openLots.length} vehicles &rarr;</a></h2>
+      <div class="grid">${soon.map(card).join('') || '<div class="empty"><b>Nothing scheduled</b>New lots are on their way.</div>'}</div>
+      <h2 class="sec">Shop by seller</h2>
+      <div class="sellers">${sellers.map(([s, c, d]) => `<div class="sl" style="--c:${c}" onclick="preset('seller:${s}')"><span class="n num">${count(s)} lots</span><b>${s}</b><p>${d}</p></div>`).join('')}</div>
+      ${deals.length ? `<h2 class="sec">Biggest spreads <span class="muted">Lowest bids against retail right now</span><a onclick="setF('sort','spread');preset()">See more &rarr;</a></h2><div class="grid">${deals.map(card).join('')}</div>` : ''}
+      ${sold.length ? `<h2 class="sec">Recent results <span class="muted">What things actually sold for</span></h2>
+        <div class="card" style="overflow:hidden"><table class="tb"><tr><th></th><th>Vehicle</th><th>Condition</th><th>Odometer</th><th>Sold for</th><th>Of retail</th><th>Buyer</th></tr>
+        ${sold.map(l => `<tr><td style="width:90px">${photo(l.preview, 'th" style="width:80px;height:50px')}</td><td><b>${title(l)}</b><div class="muted">Lot #${l.id} &middot; ${esc(l.seller)}</div></td><td>${esc(l.primary)}</td><td class="num">${odo(l.km)}</td><td class="num"><b>${money(l.price)}</b></td><td class="num">${l.retail ? Math.round(l.price / l.retail * 100) + '%' : '-'}</td><td class="muted">${esc(l.leader || '')}</td></tr>`).join('')}</table></div>` : ''}
+      <div class="ctaband">
+        <div class="dark"><h3>Got a car to move?</h3><p>Put anything from your garage on the block. Wrecks go to the salvage sale; clean classics and big-money cars go to the Collector Auction.</p><button class="btn-y" onclick="go('sell')">Sell my car</button></div>
+        <div class="card pad"><b>Inspect before you bid</b><p class="muted" style="margin:6px 0 0">Seller disclosures miss things. Fast travel to the yard and walk up to a car to find hidden problems before you put money down.</p></div>
+        <div class="card pad"><b>Know the numbers</b><p class="muted" style="margin:6px 0 0">Bid + buyer fee + tow + repairs. If that beats retail with room to spare, it's a flip. If not, let someone else have it.</p></div>
+      </div>
+      ${foot()}
+    </div>`;
+}
+
+function findView() {
+  const q = ($('#q').value || '').trim().toLowerCase();
+  const base = S.lots.filter(open);
+  let rows = base.filter(l =>
+    (filters.salvage || l.title !== 'Salvage') && (filters.clean || l.title !== 'Clean') && (!filters.rd || l.runsAndDrives) && (!filters.lowMiles || lowMiles(l))
+    && (!filters.liveOnly || isLive(l)) && (!filters.under5k || l.price < 5000) && !filters.sellers[l.seller]
+    && (!q || `${l.year} ${l.name} ${l.id} ${l.seller}`.toLowerCase().includes(q)));
+  rows.sort((sorts.find(x => x[0] === filters.sort) || sorts[0])[2]);
+  const per = layout === 'grid' ? 24 : 20, pages = Math.max(1, Math.ceil(rows.length / per));
+  page = Math.min(page, pages - 1);
+  const shown = rows.slice(page * per, page * per + per);
+  const chk = (k, t, n) => `<label><input type="checkbox" ${filters[k] ? 'checked' : ''} onchange="setF('${k}',this.checked)">${t}${n != null ? `<span class="c">${n}</span>` : ''}</label>`;
+  const chip = (k, t) => `<span class="chip ${filters[k] ? 'on' : ''}" onclick="setF('${k}',${!filters[k]})">${t}</span>`;
+  const sortLabel = (sorts.find(x => x[0] === filters.sort) || sorts[0])[1];
+  return `<div class="wrap"><div class="crumbs"><a onclick="go('home')">Home</a> &rsaquo; <b>Find vehicles</b>${q ? ` &rsaquo; "${esc(q)}"` : ''}</div>
+    <div class="find">
+    <aside class="flt">
+      <div class="grp"><h4>Sort by</h4><div class="dd"><button class="dd-btn" onclick="sortOpen=!sortOpen;render()">${sortLabel}<span>${sortOpen ? '&#9652;' : '&#9662;'}</span></button>
+        ${sortOpen ? `<div class="dd-list">${sorts.map(([v, t]) => `<a class="${filters.sort === v ? 'on' : ''}" onclick="sortOpen=false;setF('sort','${v}')">${t}</a>`).join('')}</div>` : ''}</div></div>
+      <div class="grp"><h4>Title</h4>${chk('salvage', 'Salvage', base.filter(l => l.title === 'Salvage').length)}${chk('clean', 'Clean', base.filter(l => l.title === 'Clean').length)}</div>
+      <div class="grp"><h4>Condition</h4>${chk('rd', 'Run &amp; Drive only', base.filter(l => l.runsAndDrives).length)}${chk('lowMiles', `Under ${useMi() ? '50,000 mi' : '80,000 km'}`, base.filter(lowMiles).length)}</div>
+      <div class="grp"><h4>Seller</h4>${sellers.map(([s]) => `<label><input type="checkbox" ${filters.sellers[s] ? '' : 'checked'} onchange="filters.sellers['${s}']=!this.checked;page=0;render()">${s}<span class="c">${base.filter(l => l.seller === s).length}</span></label>`).join('')}</div>
+      <div class="grp"><h4>Sale</h4>${chk('liveOnly', 'Live now', base.filter(isLive).length)}${chk('under5k', 'Current bid under $5,000', base.filter(l => l.price < 5000).length)}</div>
+      <div class="reset"><a onclick="preset()">Clear all filters</a></div>
+    </aside>
+    <div>
+      <div class="rbar"><h1 class="pg" style="margin:0">${rows.length.toLocaleString()} vehicles</h1><span class="muted">${rows.length ? `showing ${page * per + 1}-${Math.min(rows.length, page * per + per)}` : ''}</span><span class="sp"></span>
+        <span class="seg"><a class="${layout === 'grid' ? 'on' : ''}" onclick="setLayout('grid')">Grid</a><a class="${layout === 'list' ? 'on' : ''}" onclick="setLayout('list')">List</a></span></div>
+      <div class="chips">${chip('rd', 'Run &amp; drive')}${chip('lowMiles', 'Low miles')}${chip('liveOnly', 'Live now')}${chip('under5k', 'Under $5,000')}</div>
+      ${!rows.length ? `<div class="empty"><b>No vehicles match</b>Try removing a filter or two. <a onclick="preset()">Clear all filters</a></div>`
+        : layout === 'grid' ? `<div class="grid">${shown.map(card).join('')}</div>` : listTable(shown)}
+      ${pages > 1 ? `<div class="pager"><a class="${page ? '' : 'off'}" onclick="page--;render();document.getElementById('main').scrollTop=0">&lsaquo; Prev</a>${Array.from({ length: pages }, (_, i) => `<a class="${i === page ? 'on' : ''}" onclick="page=${i};render();document.getElementById('main').scrollTop=0">${i + 1}</a>`).join('')}<a class="${page < pages - 1 ? '' : 'off'}" onclick="page++;render();document.getElementById('main').scrollTop=0">Next &rsaquo;</a></div>` : ''}
+    </div></div></div>`;
+}
+function listTable(rows) {
+  return `<div class="card" style="overflow:hidden"><table class="tb"><tr><th></th><th>Lot info</th><th>Vehicle</th><th>Condition</th><th>Sale</th><th>Current bid</th><th></th></tr>
+    ${rows.map(l => `<tr class="click" onclick="openLot(${l.id})"><td style="width:132px">${photo(l.preview, 'th')}</td>
+      <td><a style="font-weight:700;font-size:14px">${title(l)}</a><div class="muted">Lot #${l.id} &middot; ${esc(l.seller)}</div>${tags(l)}</td>
+      <td class="num">${odo(l.km)}<div class="muted">Retail ${money(l.retail)}</div></td>
+      <td><b style="font-size:13px">${esc(l.primary)}</b>${l.secondary ? `<div class="muted">${esc(l.secondary)}</div>` : ''}</td>
+      <td>${statusText(l)}</td>
+      <td class="num"><b style="font-size:16px" class="${l.myMax != null ? (l.winning ? 'win' : 'lose') : ''}">${money(l.price)}</b><div>${myLine(l)}</div></td>
+      <td style="position:relative;width:46px">${starBtn(l).replace('class="star', 'style="position:static" class="star')}</td></tr>`).join('')}</table></div>`;
+}
+
+// condition sheet built from the reported faults
+function sheet(l) {
+  const has = re => l.known.some(f => re.test(f));
+  const row = (name, bad, isMech) => `<div><span>${name}</span>${bad ? '<span class="st-bad">Issue reported</span>' : isMech && !l.inspected ? '<span class="st-unk">Not verified</span>' : `<span class="st-ok">${l.inspected ? 'Checked' : 'None reported'}</span>`}</div>`;
+  return `<div class="sheet">${row('Engine', has(/engine|knock|misfire/i), true)}${row('Transmission', has(/transmission/i), true)}${row('Electrical / ECU', has(/ECU/i), true)}
+    ${row('Body / structure', has(/collision|dent|scratch/i), false)}<div><span>Starts and drives</span>${l.runsAndDrives ? '<span class="st-ok">Yes</span>' : '<span class="st-bad">No</span>'}</div><div><span>Title</span><span class="${l.title === 'Salvage' ? 'st-bad' : 'st-ok'}">${esc(l.title)}</span></div></div>`;
+}
+function history(l) {
+  const h = hist[l.id] || [];
+  if (!h.length) return `<div class="muted" style="padding:12px 16px">${l.leader ? 'Bids before you opened this page are not shown.' : 'No bids yet. Starting bid ' + money(l.startBid) + '.'}</div>`;
+  return `<div class="hist">${h.map(x => `<div><span class="${x.who === 'You' ? 'you' : ''}">${esc(x.who)}</span><span class="num">${money(x.price)}</span></div>`).join('')}</div>`;
+}
+function bidPanel(l) {
+  if (l.consigned) return ownPanel(l);
+  if (open(l)) {
+    const idle = isLive(l) ? idleOf(l) : 0;
+    const draft = parseInt(String(drafts[l.id] ?? '').replace(/[^0-9]/g, '')) || l.nextBid;
+    return `<div class="card bidpanel">
+      <div class="bp-top">${isLive(l) ? `<span class="chip-live"><i></i>LIVE AUCTION</span><span class="muted">${l.bidders} bidders in the lane</span>` : `<span class="muted">Live auction in</span><span class="cd num">${clock(left(l))}</span>`}</div>
+      <div class="bp-main"><div class="lab">${l.leader ? 'Current bid' : 'Starting bid'}</div><div class="price num">${money(l.price)}</div>
+        <div class="muted">${l.leader ? `High bidder: <b style="color:var(--text)">${esc(l.leader)}</b>` : 'No bids yet'}</div>
+        ${isLive(l) ? `<div class="going">${[0, 1, 2].map(i => `<i class="${idle >= 3 * i + 1 ? 'on' : ''}"></i>`).join('')}</div><div class="going-txt">${idle >= 6 ? 'GOING TWICE...' : idle >= 3 ? 'GOING ONCE...' : '&nbsp;'}</div>` : ''}
+        ${l.myMax != null ? `<div class="mystat ${l.winning ? 'w' : 'l'}">${l.winning ? 'You are the high bidder' : 'You have been outbid'} &middot; your max ${money(l.myMax)}</div>` : ''}
+        ${isLive(l) && !l.winning ? `<button class="btn-y btn-lg" style="width:100%;margin-top:10px" onclick="act('quickBid',${l.id})">Bid ${money(l.nextBid)} now</button>` : ''}
+        <div class="bidrow"><input id="max-${l.id}" class="num" inputmode="numeric" placeholder="Max bid (${money(l.nextBid)} or more)" value="${esc(drafts[l.id] ?? '')}" oninput="drafts[${l.id}]=this.value" onkeydown="if(event.key==='Enter')bid(${l.id})"><button class="btn-b" onclick="bid(${l.id})">Set max bid</button></div>
+        <div class="incs"><a onclick="bump(${l.id},0)">${money(l.nextBid)}</a><a onclick="bump(${l.id},${increment(l.nextBid) * 4})">+${money(increment(l.nextBid) * 4)}</a><a onclick="bump(${l.id},1000)">+$1,000</a><a onclick="bump(${l.id},5000)">+$5,000</a></div>
+        <div class="est">If you win at <b class="num">${money(draft)}</b>: buyer fee ${money(buyerFee(draft))}, total <b class="num">${money(draft + buyerFee(draft))}</b>.${draft + buyerFee(draft) > S.money ? ' <span class="lose">More than your balance.</span>' : ''}</div>
+        <p class="muted" style="margin:10px 0 0">Your max bid stays secret. We bid for you, one increment at a time, only as high as needed.</p>
+      </div>
+      <div class="bp-foot">${l.state === 'prebid' ? `<button class="btn-o" style="flex:1" onclick="act('goLive',${l.id})">Start the sale now</button>` : ''}<button class="btn-g" style="flex:1" onclick="act('speed')">${S.speed > 1 ? 'Clock: 2x (back to 1x)' : 'Speed up the clock (2x)'}</button></div>
+      <h3 style="border-radius:0;border-top:1px solid var(--line2)">Bid history</h3>${history(l)}
+    </div>`;
+  }
+  if (l.state === 'won') {
+    return `<div class="card bidpanel"><div class="bp-top"><span class="tag t-mine">YOU WON</span><span class="muted">Paid ${money(l.price)} + ${money(l.fee)} fee</span></div>
+      <div class="bp-main"><div class="lab">Winning bid</div><div class="price num win">${money(l.price)}</div><p class="muted">How do you want to get it home?</p>
+      <button class="btn-y btn-lg" style="width:100%;margin-bottom:8px" onclick="act('travel',${l.id})">${icon('pin')} Fast travel to the yard${S.travelPrice ? ' (' + money(S.travelPrice) + ')' : ''}</button>
+      <button class="btn-o" style="width:100%;margin-bottom:8px" onclick="act('pickup',${l.id})">Drive there myself (set GPS)</button>
+      <button class="btn-b" style="width:100%;margin-bottom:8px" onclick="act('tow',${l.id})">${icon('truck')} Tow to my garage: ${money(S.towFee)}, about ${S.towMinutes} min</button>
+      <button class="btn-b" style="width:100%" onclick="act('instaTow',${l.id})">Instant delivery: ${money(S.instaTowFee)}</button></div></div>`;
+  }
+  return `<div class="card bidpanel"><div class="bp-top">${statusText(l)}</div><div class="bp-main"><div class="lab">${l.state === 'sold' || l.state === 'collected' ? 'Sold for' : 'High bid'}</div><div class="price num">${money(l.price)}</div>${l.leader ? `<div class="muted">Buyer: ${esc(l.leader)}</div>` : ''}</div><h3 style="border-radius:0">Bid history</h3>${history(l)}</div>`;
+}
+function ownPanel(l) {
+  const venue = l.venue === 'collector' ? 'Collector Auction' : 'Salvage sale';
+  return `<div class="card bidpanel"><div class="bp-top"><span class="tag t-mine">YOUR CONSIGNMENT</span><span class="muted">${venue}</span></div>
+    <div class="bp-main"><div class="lab">${isLive(l) ? 'Current bid' : open(l) ? 'Starting bid' : 'Final bid'}</div><div class="price num">${money(l.price)}</div>
+      <div class="muted">${isLive(l) ? 'High bidder: ' + esc(l.leader || 'none') : open(l) ? 'Live in ' + clock(left(l)) : ''}</div>
+      ${isLive(l) ? `<div class="going">${[0, 1, 2].map(i => `<i class="${idleOf(l) >= 3 * i + 1 ? 'on' : ''}"></i>`).join('')}</div>` : ''}
+      <div class="mystat ${reserveMet(l) ? 'w' : 'l'}">${l.reserve ? `Reserve ${money(l.reserve)}: ${reserveMet(l) ? 'met' : 'not met yet'}` : 'No reserve: sells to the high bidder'}</div>
+      <div class="est">${l.state === 'sold' ? 'You received' : 'You would receive'} <b class="num">${money(l.payout)}</b> after seller fees.</div></div>
+    ${l.state === 'prebid' ? `<div class="bp-foot"><button class="btn-o" style="flex:1" onclick="act('goLive',${l.id})">Start the sale now</button><button class="btn-g" style="flex:1" onclick="act('speed')">${S.speed > 1 ? 'Clock: 2x' : 'Speed up (2x)'}</button></div>` : ''}
+    <h3 style="border-radius:0;border-top:1px solid var(--line2)">Bid history</h3>${history(l)}</div>`;
+}
+function lotView() {
+  const l = S.lots.find(x => x.id === lotId);
+  if (!l) return `<div class="wrap"><div class="crumbs"><a onclick="go('home')">Home</a> &rsaquo; <a onclick="go('find')">Find vehicles</a></div><div class="empty"><b>This lot is gone</b>It sold and has been cleared from the yard. <a onclick="go('find')">Back to the search</a></div></div>`;
+  return `<div class="wrap"><div class="crumbs"><a onclick="go('home')">Home</a> &rsaquo; <a onclick="go('find')">Find vehicles</a> &rsaquo; <b>Lot #${l.id}</b></div>
+    <div class="lothead"><div><h1 class="pg">${title(l)}</h1><div class="muted">Lot #${l.id} &middot; ${esc(l.seller)} &middot; ${esc(l.location)}</div><div>${tags(l)}</div></div><span class="sp"></span>
+      <button class="btn-o" onclick="toggleWatch(${l.id})">${icon('star', watch.has(l.id) ? 'style="fill:currentColor"' : '')} ${watch.has(l.id) ? 'Watching' : 'Watch'}</button></div>
+    <div class="lotgrid"><div>
+      <div class="card"><div class="hero-ph">${photo(l.preview)}<span class="cap">Seller photo &middot; vehicle sold as-is</span></div>
+        <table class="kv">
+          <tr><td>Odometer</td><td class="num"><b>${odo(l.km)}</b> <span class="muted">actual</span></td></tr>
+          <tr><td>Primary damage</td><td><b>${esc(l.primary)}</b></td></tr><tr><td>Secondary damage</td><td>${esc(l.secondary || 'None')}</td></tr>
+          <tr><td>Est. retail value</td><td class="num">${money(l.retail)}</td></tr>
+        </table></div>
+      <div class="card" style="margin-top:16px"><h3>Condition report</h3>${sheet(l)}
+        ${l.known.length ? `<ul class="faults">${l.known.map(f => `<li>${esc(f)}</li>`).join('')}</ul>` : ''}
+        <div class="pad" style="border-top:1px solid var(--line2)"><div class="muted" style="margin-bottom:${open(l) && !l.consigned ? '10px' : '0'}">${l.inspected ? 'You inspected this vehicle in person. What you see is what you get.' : l.consigned ? 'Your own car, listed by you.' : 'Seller disclosure only. Hidden problems are possible; inspect the car at the yard to be sure.'}</div>
+        ${open(l) && !l.consigned ? `<button class="btn-b" onclick="act('travel',${l.id})">${icon('pin')} Fast travel &amp; inspect${S.travelPrice ? ' (' + money(S.travelPrice) + ')' : ''}</button> <button class="btn-o" onclick="act('inspect',${l.id})">Set GPS route</button>` : ''}</div></div>
+      <div class="card" style="margin-top:16px"><h3>Lot information</h3><table class="kv">
+        <tr><td>Lot number</td><td>${l.id}</td></tr><tr><td>Year</td><td>${l.year}</td></tr><tr><td>Vehicle</td><td>${esc(l.name)}</td></tr>
+        <tr><td>Title</td><td>${esc(l.title)}</td></tr><tr><td>Seller</td><td>${esc(l.seller)}</td></tr><tr><td>Location</td><td>${esc(l.location)}</td></tr>
+        <tr><td>Starting bid</td><td class="num">${money(l.startBid)}</td></tr><tr><td>Registered bidders</td><td>${l.bidders}</td></tr></table></div>
+    </div><div>${bidPanel(l)}</div></div>${foot()}</div>`;
+}
+
+// what the auctioneer is calling, from how long the lot has gone without a bid
+function chant(l) {
+  const idle = idleOf(l);
+  if (!l.leader) return `Who'll open at ${money(l.startBid)}?`;
+  if (idle >= 6) return `Going twice at ${money(l.price)}... last call`;
+  if (idle >= 3) return `Going once at ${money(l.price)}...`;
+  return `${money(l.price)}, do I hear ${money(l.nextBid)}?`;
+}
+const seenPrice = {};
+function flashed(l) { const hit = seenPrice[l.id] != null && seenPrice[l.id] !== l.price; seenPrice[l.id] = l.price; return hit; }
+function liveView() {
+  const ls = S.lots.filter(isLive);
+  const queue = S.lots.filter(l => l.state === 'prebid').sort((a, b) => a.timeLeft - b.timeLeft).slice(0, 6);
+  if (!ls.find(l => l.id === liveFocus)) liveFocus = ls[0] ? ls[0].id : null;
+  const l = ls.find(x => x.id === liveFocus);
+  const lane = l ? `<div class="block"><div class="bar"><span class="chip-live"><i></i>ON THE BLOCK</span><b>Lot #${l.id}</b><span class="sp"></span><span>${esc(l.seller)}</span></div>
+      <div class="body"><div class="ph" style="cursor:pointer" onclick="openLot(${l.id})">${photo(l.preview)}</div>
+        <div class="side"><a style="font-size:18px;font-weight:700" onclick="openLot(${l.id})">${title(l)}</a><div class="muted">${esc(l.primary)} &middot; ${odo(l.km)} &middot; retail ${money(l.retail)}</div><div>${tags(l)}</div>
+          <div style="margin-top:14px" class="muted">${l.leader ? 'Current bid' : 'Opening at'}</div><div class="price num ${l.winning ? 'win' : ''} ${flashed(l) ? 'flash' : ''}">${money(l.price)}</div>
+          <div class="lead">${l.leader ? `High bidder: <b>${esc(l.leader)}</b>` : 'Waiting for an opening bid'}</div>
+          <div class="going">${[0, 1, 2].map(i => `<i class="${idleOf(l) >= 3 * i + 1 ? 'on' : ''}"></i>`).join('')}</div><div class="going-txt">${chant(l)}</div>
+          <div style="margin-top:auto;padding-top:14px">${l.consigned ? `<button class="btn-o btn-lg" style="width:100%" disabled>Your car &middot; you would get ${money(l.payout)}</button>` : l.winning ? `<button class="btn-o btn-lg" style="width:100%" disabled>${icon('check')} You are the high bidder</button>` : `<button class="btn-y btn-lg" style="width:100%;font-size:17px" onclick="act('quickBid',${l.id})">Bid ${money(l.nextBid)}</button>`}
+          ${l.myMax != null ? `<div class="muted" style="margin-top:6px;text-align:center">Your max: ${money(l.myMax)}</div>` : ''}</div></div></div>
+      <h3 style="border-radius:0;border-top:1px solid var(--line)">Bid history</h3>${history(l)}</div>`
+    : `<div class="empty"><b>The lanes are quiet</b>${queue[0] ? `Next up: ${title(queue[0])} in ${clock(left(queue[0]))}.` : 'No sales scheduled.'}</div>`;
+  return `<div class="wrap"><div class="crumbs"><a onclick="go('home')">Home</a> &rsaquo; <b>Live auctions</b></div>
+    <div class="rbar"><h1 class="pg" style="margin:0">Live auctions</h1><span class="muted">${ls.length} selling now</span><span class="sp"></span>
+      ${queue[0] ? `<button class="btn-o" onclick="act('goLive',${queue[0].id})">Start the next sale now</button>` : ''}<button class="btn-g" onclick="act('speed')">${S.speed > 1 ? 'Clock: 2x (back to 1x)' : 'Speed up (2x)'}</button></div>
+    <div class="floor"><div>${lane}</div>
+      <div>
+        ${ls.length > 1 ? `<div class="card queue" style="margin-bottom:14px"><h3>All lanes (${ls.length})</h3>${ls.map(x => `<div class="q ${x.id === liveFocus ? 'on' : ''}" onclick="liveFocus=${x.id};render()">${photo(x.preview)}<div class="t"><b>${title(x)}</b>${idleOf(x) >= 6 ? '<span class="lose">Going twice</span>' : idleOf(x) >= 3 ? '<span class="lose">Going once</span>' : '<span class="muted">Bidding</span>'}</div><div class="p num ${x.myMax != null ? (x.winning ? 'win' : 'lose') : ''}">${money(x.price)}</div></div>`).join('')}</div>` : ''}
+        <div class="card queue"><h3>Up next</h3>${queue.map(x => `<div class="q" onclick="openLot(${x.id})">${photo(x.preview)}<div class="t"><b>${title(x)}</b><span class="muted num">in ${clock(left(x))}</span></div><div class="p num">${money(x.price)}</div></div>`).join('') || '<div class="muted" style="padding:12px">Nothing scheduled.</div>'}</div>
+      </div></div></div>`;
+}
+
+function mineView() {
+  const groups = {
+    active: S.lots.filter(l => l.myMax != null && open(l) && !l.consigned),
+    won: S.lots.filter(l => l.state === 'won' || l.state === 'spawning' || (l.state === 'collected' && l.winning)),
+    lost: S.lots.filter(l => l.myMax != null && (l.state === 'sold' || l.state === 'noSale') && !l.winning),
+    watch: S.lots.filter(l => watch.has(l.id)),
+  };
+  const names = { active: 'Active bids', won: 'Won', lost: 'Lost', watch: 'Watchlist' };
+  const rows = groups[myTab];
+  const emptyMsg = { active: ['No active bids', 'Find a car and set a max bid. We bid for you up to that amount.'], won: ['Nothing won yet', 'Cars you win show up here until you collect them.'], lost: ['Nothing lost', 'Lots you bid on and lost show here for a few minutes after the sale.'], watch: ['Your watchlist is empty', 'Tap the star on any lot to keep an eye on it. We let you know when it goes live.'] }[myTab];
+  return `<div class="wrap"><div class="crumbs"><a onclick="go('home')">Home</a> &rsaquo; <b>My bids</b></div><h1 class="pg">My bids</h1>
+    <div class="tabs">${Object.keys(names).map(k => `<a class="${myTab === k ? 'on' : ''}" onclick="myTab='${k}';render()">${names[k]} <span class="muted">(${groups[k].length})</span></a>`).join('')}</div>
+    ${rows.length ? `<div class="card" style="overflow:hidden"><table class="tb"><tr><th></th><th>Vehicle</th><th>Status</th><th>Bid</th><th></th></tr>
+    ${rows.map(l => `<tr class="click" onclick="openLot(${l.id})"><td style="width:132px">${photo(l.preview, 'th')}</td>
+      <td><a style="font-weight:700">${title(l)}</a><div class="muted">Lot #${l.id} &middot; ${esc(l.seller)}</div>${tags(l)}</td>
+      <td>${statusText(l)}</td><td class="num"><b style="font-size:16px" class="${l.myMax != null ? (l.winning ? 'win' : 'lose') : ''}">${money(l.price)}</b><div>${myLine(l)}</div></td>
+      <td style="text-align:right">${l.state === 'won' ? `<button class="btn-y">Get my car</button>` : open(l) && !l.consigned ? `<button class="btn-o">${l.myMax != null ? 'Raise max bid' : 'Bid'}</button>` : ''}</td></tr>`).join('')}</table></div>`
+    : `<div class="empty"><b>${emptyMsg[0]}</b>${emptyMsg[1]}</div>`}</div>`;
+}
+
+function sellView() {
+  const own = S.lots.filter(l => l.consigned);
+  const draft = id => esc(drafts['res' + id] ?? '');
+  return `<div class="wrap"><div class="crumbs"><a onclick="go('home')">Home</a> &rsaquo; <b>Sell my car</b></div><h1 class="pg">Sell my car</h1>
+    <p class="muted" style="margin:0 0 16px">Your car goes to the yard and stays locked until the hammer falls. If it doesn't sell, it comes straight back to your storage.</p>
+    <div class="venues">
+      <div class="venue"><div class="kick" style="color:var(--blue)">Any car, any condition</div><h4>Salvage sale</h4><div class="muted">Fast and simple. Salvage buyers bid low to fair.</div>
+        <ul><li>Live in about 2 minutes</li><li>No entry fee</li><li>Seller fee: ${pct(S.venues.salvageFee)} of the hammer price</li></ul></div>
+      <div class="venue col"><div class="kick">The big stage</div><h4>Collector Auction</h4><div class="muted">Collectors, museums and exotic dealers. Bids regularly clear book value; restored classics do best.</div>
+        <ul><li>Cars worth $25,000+ or 25+ years old, fully repaired</li><li>Entry fee: $500 + 1% of value (not refunded)</li><li>Seller fee: ${pct(S.venues.collectorFee)} of the hammer price</li></ul></div>
+    </div>
+    ${own.length ? `<h2 class="sec">Your consignments</h2><div class="card" style="overflow:hidden"><table class="tb"><tr><th></th><th>Vehicle</th><th>Status</th><th>High bid</th><th>You get</th><th></th></tr>
+      ${own.map(l => `<tr class="click" onclick="openLot(${l.id})"><td style="width:132px">${photo(l.preview, 'th')}</td><td><a style="font-weight:700">${title(l)}</a><div class="muted">Lot #${l.id} &middot; ${l.venue === 'collector' ? 'Collector Auction' : 'Salvage sale'}</div></td>
+        <td>${statusText(l)}${l.reserve ? `<div class="muted">Reserve ${money(l.reserve)} ${reserveMet(l) ? '(met)' : '(not met)'}</div>` : ''}</td>
+        <td class="num"><b>${money(l.price)}</b><div class="muted">${esc(l.leader || 'no bids yet')}</div></td><td class="num"><b>${l.state === 'noSale' ? '-' : money(l.payout)}</b></td>
+        <td>${l.state === 'prebid' ? `<button class="btn-o" onclick="event.stopPropagation();act('goLive',${l.id})">Start now</button>` : ''}</td></tr>`).join('')}</table></div>` : ''}
+    <h2 class="sec">Your garage <span class="muted">Value follows the parts on the car. Fresh parts count; restored classics earn up to 2x their price new.</span></h2>
+    ${S.garage.length ? `<div class="card" style="overflow:hidden"><table class="tb"><tr><th></th><th>Vehicle</th><th>Condition</th><th>Value</th><th>Reserve</th><th>List it</th></tr>
+      ${S.garage.map(v => `<tr><td style="width:132px">${v.thumbnail ? photo(v.thumbnail, 'th') : ''}</td>
+        <td><b>${v.year ? v.year + ' ' : ''}${esc(v.name)}</b><div class="muted num">${odo(v.km)} on the body</div>${v.condition && v.condition.restoredClassic ? '<span class="tag t-clean">RESTORED CLASSIC</span>' : v.classic ? '<span class="tag t-low">CLASSIC</span>' : ''}</td>
+        <td>${v.condition ? `<span class="meter"><i style="width:${Math.round(v.condition.score * 100)}%;background:${v.condition.score > .8 ? 'var(--green)' : v.condition.score > .5 ? 'var(--yellow-d)' : 'var(--red)'}"></i></span><b class="num">${Math.round(v.condition.score * 100)}</b><span class="muted">/100</span><div class="muted num">parts average ${odo(v.condition.km)}</div>` : '<span class="muted">-</span>'}</td>
+        <td class="num"><b style="font-size:15px">${money(v.value)}</b>${v.value < v.clean ? `<div class="muted">${money(v.clean)} once repaired</div>` : ''}</td>
+        <td>${v.reason ? '' : `<input id="max-res-${v.id}" class="num" style="width:130px" placeholder="No reserve" value="${draft(v.id)}" oninput="drafts['res${v.id}']=this.value">`}</td>
+        <td>${v.reason ? `<span class="muted">${esc(v.reason)}</span>${v.lotId ? ` &middot; <a onclick="openLot(${v.lotId})">Lot #${v.lotId}</a>` : ''}` :
+          `<button class="btn-o" onclick="consign(${v.id},'salvage')">Salvage sale</button>
+           <button class="btn-b" ${v.collectorReason ? 'disabled' : ''} title="${esc(v.collectorReason || '')}" onclick="consign(${v.id},'collector')">Collector Auction &middot; ${money(v.entryFee)}</button>
+           ${v.collectorReason ? `<div class="muted" style="margin-top:4px">${esc(v.collectorReason)}</div>` : ''}`}</td></tr>`).join('')}</table></div>`
+      : `<div class="empty"><b>Your garage is empty</b>Win something first, then come back to flip it.</div>`}${foot()}</div>`;
+}
+function consign(id, venue) {
+  const r = parseInt(String(drafts['res' + id] ?? '').replace(/[^0-9]/g, '')) || 0;
+  delete drafts['res' + id];
+  act('consign', id, r, venue);
+}
+
+// ---------- Bean Diag: the scan tool as its own app ----------
+const modules = [['engine', 'Engine control (ECM)'], ['trans', 'Transmission (TCM)'], ['cool', 'Cooling system'], ['turbo', 'Forced induction'], ['body', 'Body control (BCM)'], ['chassis', 'ABS / chassis']];
+const modOf = f => { const c = (f.codes[0] || [''])[0]; return c[0] === 'B' ? 'body' : /^P07/.test(c) ? 'trans' : c === 'P0299' ? 'turbo' : c === 'P0217' || c === 'P2560' ? 'cool' : 'engine'; };
+let diagTab = 'diag';
+const scanStart = {}, scanTime = 3200; // the sweep runs at least this long so a scan feels like a scan
+const sweeping = v => v.scanning || Date.now() - (scanStart[v.id] || 0) < scanTime;
+function startScan(id) { scanStart[id] = Date.now(); act('scan', id); render(); }
+function diagView() {
+  const vs = (S.scan && S.scan.vehicles) || [];
+  if (!vs.find(v => v.id === scanVeh)) scanVeh = vs[0] ? vs[0].id : null;
+  const v = vs.find(x => x.id === scanVeh);
+  const bar = `<div class="dg-bar"><div class="dg-ico"><svg viewBox="0 0 24 24">${I.obd}</svg></div><div class="dg-title"><b>BEAN DIAG PRO</b><span>OBD-II diagnostics &middot; shop labor ${money(S.scan ? S.scan.laborRate : 0)}/hr</span></div><span class="sp"></span>
+    ${v ? `<span class="pill ${v.inRange ? 'ok' : ''}"><i></i>${v.inRange ? 'Connected: ' + esc(v.name) : 'Not connected'}</span>` : ''}${inGame ? '' : `<a onclick="go('home')">&larr; Back to BeanAuctions</a>`}</div>`;
+  if (!v) return bar + `<div class="dg-empty full"><div class="ring"><svg viewBox="0 0 24 24">${I.obd}</svg></div><b>No vehicles to scan</b>Buy or win a car first, then come back and plug in.<button class="btn-y" style="margin-top:18px" onclick="go('home')">Browse the auctions</button></div>`;
+  const side = `<div class="dg-side"><div class="dg-h">Your vehicles</div>${vs.map(x => `<div class="dv ${x.id === scanVeh ? 'on' : ''}" onclick="scanVeh=${x.id};render()">${photo(x.thumbnail)}<div><b>${x.year ? x.year + ' ' : ''}${esc(x.name)}</b><small><i class="${x.inRange ? 'g' : ''}"></i>${x.inRange ? 'In range' : 'Out of range'}${x.faults ? ' &middot; ' + x.faults.length + ' DTC' : ''}</small></div></div>`).join('')}</div>`;
+  const fs = v.faults, total = fs ? fs.reduce((a, f) => a + f.total, 0) : 0;
+  const busy = sweeping(v);
+  const head = `<div class="dg-head">${photo(v.thumbnail)}<div><h2>${v.year ? v.year + ' ' : ''}${esc(v.name)}</h2><div class="sub">${v.inRange ? 'Plugged in and ready.' : esc(v.reason || 'Walk within 15 m of this vehicle to connect.')}</div></div><span class="sp"></span>
+    <button class="scanbtn" ${v.inRange && !busy ? '' : 'disabled'} onclick="startScan(${v.id})">${busy ? 'SCANNING...' : fs ? 'SCAN AGAIN' : 'SCAN'}</button></div>`;
+  const tabs = `<div class="dg-tabs"><a class="${diagTab === 'diag' ? 'on' : ''}" onclick="diagTab='diag';render()">Diagnostics${fs && fs.length ? ` <span class="cnt red">${fs.length}</span>` : ''}</a><a class="${diagTab === 'refurb' ? 'on' : ''}" onclick="diagTab='refurb';render()">Refurbish</a></div>`;
+  if (diagTab === 'refurb') return bar + `<div class="dg-body">${side}<div class="dg-main">${head.replace('class="scanbtn"', 'class="scanbtn" style="display:none"')}${tabs}${refurbView(v)}</div></div>`;
+  let body;
+  if (busy) {
+    const t = Date.now() - (scanStart[v.id] || Date.now()), step = scanTime / (modules.length + 1);
+    const done = Math.min(modules.length, Math.floor(t / step));
+    const log = ['LINK OK  ISO 15765-4 CAN 500K', 'READING VIN... OK', ...modules.slice(0, done + 1).map(m => `QUERY ${m[1].toUpperCase()}`)];
+    body = `<div class="dg-grid"><div class="panel"><div class="dg-h">Modules</div>${modules.map(([, name], i) => `<div class="mod"><span>${name}</span>${i < done ? '<span class="st ok">Read</span>' : i === done ? '<span class="st run"><span class="spin"></span>Reading</span>' : '<span class="st wait">Waiting</span>'}</div>`).join('')}<div class="prog"><i style="width:${Math.round(done / modules.length * 100)}%"></i></div></div>
+      <div class="term">${log.map(x => `<div>&gt; ${x}</div>`).join('')}<div>&gt; <span class="cur"></span></div></div></div>`;
+  } else if (!v.inRange && !fs) body = `<div class="panel"><div class="dg-empty">${photo(v.thumbnail)}<b>No vehicle connected</b>${esc(v.reason || 'Walk within 15 m of the vehicle you want to scan.')}</div></div>`;
+  else if (!fs) body = `<div class="dg-grid"><div class="panel"><div class="dg-h">Modules</div>${modules.map(([, name]) => `<div class="mod"><span>${name}</span><span class="st wait">Not read</span></div>`).join('')}</div>
+      <div class="term"><div>&gt; VEHICLE CONNECTED</div><div>&gt; PRESS SCAN TO READ TROUBLE CODES</div><div>&gt; <span class="cur"></span></div></div></div>`;
+  else {
+    const count = sev => fs.filter(f => f.severity === sev).length;
+    const byMod = k => fs.filter(f => modOf(f) === k).length;
+    body = `<div class="sum"><div><b class="num">${fs.length}</b><span>Faults</span></div><div><b class="num" style="color:#ff7b72">${count('Critical')}</b><span>Critical</span></div><div><b class="num" style="color:#ffd166">${count('Moderate')}</b><span>Moderate</span></div><div><b class="num">${money(total)}</b><span>Est. repair</span></div>
+        <div class="act">${fs.length ? `<button class="btn-y btn-lg" ${v.inRange ? '' : 'disabled'} onclick="act('repair',${v.id})">Repair all</button>` : ''}</div></div>
+      <div class="dg-grid"><div class="panel"><div class="dg-h">Modules</div>${modules.map(([k, name]) => `<div class="mod"><span>${name}</span>${byMod(k) ? `<span class="st bad">${byMod(k)} fault${byMod(k) > 1 ? 's' : ''}</span>` : '<span class="st ok">Pass</span>'}</div>`).join('')}</div>
+      <div>${fs.length ? fs.map((f, i) => `<div class="fault sev-${f.severity}" style="animation-delay:${i * 70}ms"><div>
+          <div class="codes">${f.codes.map(c => `<code>${esc(c[0])}</code>`).join('')}<span class="sevb">${f.severity.toUpperCase()}</span></div>
+          <div class="desc">${f.codes.map(c => esc(c[1])).join(' &middot; ')}</div>
+          <div class="part">${esc(f.part)}</div><div class="fix">${esc(f.fix)}</div></div>
+        <div class="cost"><b class="num">${money(f.total)}</b><small>parts ${money(f.parts)} + ${f.hours}h labor ${money(f.labor)}</small><button class="ghost" ${v.inRange ? '' : 'disabled'} onclick="act('repair',${v.id},0,${esc(JSON.stringify(f.path))})">Repair</button></div></div>`).join('')
+        : `<div class="panel allgood"><div class="ck"><svg class="i" viewBox="0 0 24 24">${I.check}</svg></div><b>No trouble codes</b><span>Every module passes. This one is healthy.</span></div>`}</div></div>`;
+  }
+  return bar + `<div class="dg-body">${side}<div class="dg-main">${head}${tabs}${body}</div></div>`;
+}
+function refurbView(v) {
+  const cap = (S.scan && S.scan.refurbishMax) || 0.95, pct = x => Math.round(x * 100);
+  const rf = v.refurb || [], todo = rf.filter(p => p.worn), total = todo.reduce((a, p) => a + p.cost, 0);
+  const meter = sc => `<div class="rf-bar"><i style="width:${pct(sc)}%;background:${sc >= cap - 0.005 ? '#4ade80' : sc > 0.6 ? '#ffd166' : '#ff7b72'}"></i><b style="left:${pct(cap)}%"></b></div>`;
+  return `<div class="rf-top"><div><div class="dg-h" style="margin:0">Overall condition</div><div class="rf-big num">${v.condition ? pct(v.condition.score) : '-'}<span>/100</span></div></div>
+      <p>Rebuild a whole system with refurbished parts. Refurbish all five for a full restoration. Refurbished parts come back to <b>${pct(cap)}%</b> at most; only a brand-new part from the parts shop is 100%.</p>
+      <button class="btn-y btn-lg" ${todo.length && v.inRange ? '' : 'disabled'} onclick="act('refurbish',${v.id},0,'')">Refurbish everything${todo.length ? ' &middot; ' + money(total) : ''}</button></div>
+    ${!v.inRange ? `<div class="pill" style="margin-bottom:12px;display:inline-flex"><i></i>${esc(v.reason || 'Get to the vehicle to work on it.')}</div>` : ''}
+    <div class="rf-grid">${rf.map(p => `<div class="panel rf">
+        <div class="rf-h"><b>${esc(p.name)}</b><span class="num">${pct(p.score)}%</span></div>${meter(p.score)}
+        <div class="rf-sub">${p.worn ? `${p.worn} worn part${p.worn > 1 ? 's' : ''} &middot; ${p.hours}h labor` : 'At or above refurbished condition'}</div>
+        <div class="rf-f"><span class="num">${p.worn ? money(p.cost) : ''}</span><button class="ghost" ${p.worn && v.inRange ? '' : 'disabled'} onclick="act('refurbish',${v.id},0,'${p.id}')">${p.worn ? 'Refurbish' : 'Done'}</button></div>
+      </div>`).join('') || '<div class="panel dg-empty"><b>No mechanical parts found</b></div>'}</div>`;
+}
+
+// ---------- chrome + render ----------
+function chrome() {
+  const live = S.lots.filter(isLive).length, wonN = S.lots.filter(l => l.state === 'won').length, ownN = S.lots.filter(l => l.consigned && open(l)).length;
+  const tab = (k, t, extra = '') => `<a class="${view === k || (view === 'lot' && k === 'find') ? 'on' : ''}" onclick="go('${k}')">${t}${extra}</a>`;
+  patch($('#nav'), tab('home', 'Home') + tab('find', 'Find vehicles', ` <span class="cnt">${S.lots.filter(open).length}</span>`)
+    + tab('live', `${live ? '<span class="livedot"></span>' : ''}Live auctions`, live ? ` <span class="cnt red">${live}</span>` : '')
+    + tab('mine', 'My bids', wonN ? ` <span class="cnt y">${wonN} won</span>` : '') + tab('sell', 'Sell my car', ownN ? ` <span class="cnt">${ownN}</span>` : '')
+    + `<span class="sp"></span>${S.travelPrice != null ? `<span class="meta">${icon('pin')}&nbsp;Fast travel to yard: ${S.travelPrice ? money(S.travelPrice) : 'free'}</span>` : ''}`);
+  $('#money').textContent = money(S.money);
+  $('#u-clock').innerHTML = S.speed > 1 ? '<span class="clk2">AUCTION CLOCK 2x</span>' : '';
+  $('#units').innerHTML = `Units: ${['km', 'mi'].map(u => `<a class="unit ${(useMi() ? 'mi' : 'km') === u ? 'on' : ''}" onclick="setUnits('${u}')">${u}</a>`).join(' / ')}`;
+  $('#u-left').innerHTML = inGame ? 'Salvage &middot; Insurance &middot; Repo &middot; Collector' : `<a onclick="go('scan')">Open Bean Diag (scan tool)</a>`;
+  $('#weblink').innerHTML = inGame && S.webUrl ? `<a onclick="act('openBrowser')">Copy link for your browser &#8599;</a>` : '';
+  $('.logo .mark').innerHTML = `<svg viewBox="0 0 24 24">${I.gavel}</svg>`;
+  // tablet status bar
+  $('#sb-time').textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  const batt = Math.max(9, 100 - Math.floor((Date.now() - openedAt) / 90000));
+  $('#sb-batt').textContent = batt + '%'; $('#sb-batti').style.setProperty('--b', Math.round(batt / 100 * 17) + 'px');
+  $('#sb-net').innerHTML = icon('wifi');
+  $('#power').innerHTML = icon('power');
+}
+
+// Patch the DOM in place instead of replacing it, so hover states, images, inputs and running
+// animations survive the once-a-second refresh.
+function morph(from, to) {
+  const a = [...from.childNodes], b = [...to.childNodes];
+  b.forEach((y, i) => {
+    const x = a[i];
+    if (!x) return from.appendChild(y);
+    if (x.nodeType !== y.nodeType || x.nodeName !== y.nodeName) return from.replaceChild(y, x);
+    if (x.nodeType === 3) { if (x.nodeValue !== y.nodeValue) x.nodeValue = y.nodeValue; return; }
+    if (x.nodeType !== 1) return;
+    for (const at of [...x.attributes]) if (!y.hasAttribute(at.name)) x.removeAttribute(at.name);
+    for (const at of [...y.attributes]) if (x.getAttribute(at.name) !== at.value) x.setAttribute(at.name, at.value);
+    if (x.tagName === 'INPUT') {
+      if (x.type === 'checkbox') x.checked = y.hasAttribute('checked');
+      else if (x !== document.activeElement && x.value !== (y.getAttribute('value') || '')) x.value = y.getAttribute('value') || '';
+      return;
+    }
+    morph(x, y);
+  });
+  for (let i = a.length - 1; i >= b.length; i--) from.removeChild(a[i]);
+}
+function patch(el, html) { const t = document.createElement(el.tagName); t.innerHTML = html; morph(el, t); }
+
+let loaded = false, lastGroup = null;
+function render() {
+  const group = view === 'launcher' && inGame ? 'launcher' : view === 'scan' ? 'diag' : 'site';
+  document.body.classList.toggle('on-launcher', group === 'launcher');
+  document.body.classList.toggle('on-diag', group === 'diag');
+  if (group !== lastGroup) {
+    const el = $('#' + group);
+    el.classList.remove('appin', 'homein'); void el.offsetWidth;
+    if (lastGroup) el.classList.add(group === 'launcher' ? 'homein' : 'appin');
+    lastGroup = group;
+  }
+  chrome();
+  if (group === 'launcher') return patch($('#launcher'), launcherView());
+  if (group === 'diag') return patch($('#diag'), diagView());
+  if (!loaded) return patch($('#main'), `<div class="wrap"><div class="empty"><b>Connecting to the auction...</b>Loading today's lots.</div></div>`);
+  patch($('#main'), view === 'lot' ? lotView() : view === 'live' ? liveView() : view === 'mine' ? mineView() : view === 'sell' ? sellView() : view === 'find' ? findView() : homeView());
+}
+function closeTablet() {
+  if (document.body.classList.contains('closing')) return;
+  document.body.classList.add('closing');
+  setTimeout(() => act('close'), 190);
+}
+
+document.body.classList.toggle('ingame', inGame);
+$('#q').addEventListener('keydown', e => { if (e.key === 'Enter') search(); });
+$('#q').addEventListener('input', () => { if (view === 'find') { page = 0; render(); } });
+// in game, Esc is a key binding (beanAuctions_back) so it works before the page has focus; this covers
+// typing in a text box, when the game's own bindings are off. closeTablet ignores a second call.
+document.addEventListener('keydown', e => { if (inGame && e.key === 'Escape') closeTablet(); });
+document.addEventListener('click', e => { if (sortOpen && !e.target.closest('.dd')) { sortOpen = false; render(); } });
+// the game only sends keystrokes to the page while CEF typing is on (stock UI does the same on input focus)
+const isText = el => el && el.tagName === 'INPUT' && el.type !== 'checkbox';
+document.addEventListener('focusin', e => inGame && isText(e.target) && parent.bngApi.engineLua('setCEFTyping(true)'));
+document.addEventListener('focusout', e => inGame && isText(e.target) && parent.bngApi.engineLua('setCEFTyping(false)'));
+setInterval(() => { if (document.activeElement !== $('#q')) render(); }, 1000); // local countdowns between Lua pushes
+setInterval(() => { if (view === 'scan' && Object.values(scanStart).some(t => Date.now() - t < scanTime + 300)) render(); }, 150); // smooth scan sweep
+render();
+if (inGame) act('refresh'); else connect();
+</script>
+</body>
+</html>

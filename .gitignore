@@ -1,0 +1,6 @@
+*.zip
+screenshots/
+.vscode/
+.idea/
+Thumbs.db
+dist/

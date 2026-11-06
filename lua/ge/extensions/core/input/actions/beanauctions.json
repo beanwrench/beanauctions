@@ -1,0 +1,4 @@
+{
+"beanAuctions_toggle" :{"cat":"gameplay", "order": 90, "ctx": "tlua", "onDown" :"if career_modules_beanAuctions then career_modules_beanAuctions.toggleWindow() end", "title": "BeanAuctions: open/close tablet", "desc": "Opens the BeanAuctions tablet (career mode only)" },
+"beanAuctions_back" :{"cat":"gameplay", "order": 91, "ctx": "tlua", "onDown" :"if career_modules_beanAuctions then career_modules_beanAuctions.closeIfOpen() end", "title": "BeanAuctions: put the tablet away", "desc": "Closes the BeanAuctions tablet when it is open" }
+}

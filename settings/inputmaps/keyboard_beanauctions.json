@@ -1,0 +1,6 @@
+{
+  "bindings":[
+    {"control":"b", "action":"beanAuctions_toggle"},
+    {"control":"escape", "action":"beanAuctions_back"}
+  ]
+}

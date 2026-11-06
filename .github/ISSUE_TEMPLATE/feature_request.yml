@@ -1,0 +1,14 @@
+name: Idea or feature request
+description: Suggest something new or a change
+labels: [enhancement]
+body:
+  - type: textarea
+    id: idea
+    attributes:
+      label: What's your idea?
+    validations:
+      required: true
+  - type: textarea
+    id: why
+    attributes:
+      label: Why would it make the game better?

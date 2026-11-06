@@ -1,0 +1,47 @@
+name: Bug report
+description: Something in BeanAuctions isn't working right
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for reporting! The more detail you give, the faster it gets fixed.
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened?
+      description: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: How can I make it happen?
+      description: Step by step, if you can.
+      placeholder: |
+        1. Open the tablet with B
+        2. Go to Live Auctions
+        3. ...
+  - type: input
+    id: version
+    attributes:
+      label: Game version
+      description: Shown in the bottom-left corner of the main menu.
+      placeholder: "0.40.5"
+    validations:
+      required: true
+  - type: input
+    id: map
+    attributes:
+      label: Map
+      placeholder: West Coast USA
+  - type: textarea
+    id: log
+    attributes:
+      label: Errors from the log
+      description: Open the console with ~ and copy any red lines, or attach beamng.log from %LOCALAPPDATA%\BeamNG\BeamNG.drive\current\
+      render: text
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: Screenshots
+      description: Drag images in here if they help.

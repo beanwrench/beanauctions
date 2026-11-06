@@ -1,0 +1,50 @@
+[SIZE=6][B]BeanAuctions[/B][/SIZE]
+[B]Salvage auctions, a diagnostic scan tool and an in-game tablet for career mode.[/B]
+
+Buy wrecked, worn-out and repossessed cars at auction, find out what's actually wrong with them, fix them up and sell them for a profit.
+
+[SIZE=5][B]Features[/B][/SIZE]
+[LIST]
+[*][B]Live auctions.[/B] 100 cars for sale at any time, from every make and model in the game. A new lot goes live about every 40 seconds.
+[*][B]Hidden problems.[/B] Sellers don't disclose everything. Some cars have a bad engine, a slipping transmission or an ECU fault you won't see until you inspect them at the yard.
+[*][B]Four kinds of sellers.[/B] Insurance write-offs, bank repos, salvage pool wrecks and dealer trade-ins.
+[*][B]Sell your own cars[/B] at the salvage sale, or at the Collector Auction for valuable cars and classics. Set a reserve if you like.
+[*][B]Restoration value.[/B] A car's value follows the parts actually on it, and fully restored classics can sell for up to twice their price new.
+[*][B]Bean Diag.[/B] Read real OBD-II trouble codes from any car you own, with a repair price for each fault.
+[*][B]Refurbishing.[/B] Rebuild a car's engine, transmission, driveline, suspension or body with refurbished parts, back to 95% condition. Never brand new.
+[*][B]Chop shop.[/B] Strip every removable part off a car in one click from Part Customization.
+[*][B]Second monitor.[/B] Open the auction site in your normal web browser while you play.
+[/LIST]
+
+[SIZE=5][B]How to use[/B][/SIZE]
+[LIST=1]
+[*]Load a [B]career[/B] save.
+[*]Press [B]B[/B] anywhere, or use the computer in any garage, to open the tablet. [B]Esc[/B] puts it away.
+[*]Open [B]BeanAuctions[/B] to buy and sell, or [B]Bean Diag[/B] to scan and refurbish your cars.
+[/LIST]
+
+[B]Buying:[/B] set a max bid on any lot and it bids for you, one increment at a time. When the timer runs out the lot goes to a live auction. Inspect expensive cars first, and add up bid + buyer fee + towing + repairs before you commit.
+
+[B]Getting your car:[/B] pick it up at the yard for free, have it towed ($400, about 5 minutes) or pay $1,200 for instant delivery.
+
+[B]Buyer fees:[/B] 12% + $100 under $5,000; 9% + $100 from $5,000 to $19,999; 7% + $100 from $20,000.
+
+[SIZE=5][B]Good to know[/B][/SIZE]
+[LIST]
+[*]Career mode only. Tested on 0.40.5, West Coast USA. Other career maps with parking spots should work.
+[*]B is also the default nitrous key. Rebind either under Options > Controls ("BeanAuctions: open/close tablet").
+[*]The value changes apply everywhere the game values your cars: selling, trade-ins, insurance and the auctions.
+[*]Browser access only works on your own PC (localhost). The link from the tablet carries a private key.
+[*]Suspension and shock wear isn't simulated yet.
+[/LIST]
+
+[SIZE=5][B]Bugs & ideas[/B][/SIZE]
+The best place for bug reports and feature requests is GitHub. The forms there ask for everything needed to fix things fast:
+[LIST]
+[*][URL='https://github.com/beanwrench/beanauctions/issues/new?template=bug_report.yml']Report a bug[/URL] (include your game version, map and any red console lines)
+[*][URL='https://github.com/beanwrench/beanauctions/issues/new?template=feature_request.yml']Suggest a feature[/URL]
+[*][URL='https://github.com/beanwrench/beanauctions/issues']See open issues[/URL]
+[/LIST]
+No GitHub account? Post in the discussion thread with a screenshot and your game version.
+
+Source code: [URL]https://github.com/beanwrench/beanauctions[/URL] (MIT license)
